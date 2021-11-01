@@ -3,18 +3,18 @@
 
 __author__ = "EONRaider @ keybase.io/eonraider"
 
-
-server_routes = list()
-
-
-def server_route(func):
-    server_routes.append(func.__name__)
-    return func
+from pathlib import Path
 
 
-@server_route
-def send(data) -> None:
-    """Handles POST requests to the /send endpoint."""
-    with open('/tmp/file', 'wb') as fd:
-        fd.write(data["contents"][0].encode())
-    print("File saved as /tmp/file")
+class ServerRoutes:
+    def __init__(self, handler):
+        self.handler = handler
+        self.root_dir = Path("~/.reverse-shell/").expanduser()
+        self.root_dir.mkdir(exist_ok=True)
+
+    def upload(self) -> None:
+        """Handles POST requests to the /upload endpoint."""
+        file_path = self.root_dir.joinpath(self.handler.subpath)
+        with open(file=file_path, mode='wb') as fd:
+            fd.write(self.handler.data["contents"][0].encode())
+        print(f"File saved to {str(file_path)}")
