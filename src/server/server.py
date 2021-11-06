@@ -3,54 +3,39 @@
 
 __author__ = "EONRaider @ keybase.io/eonraider"
 
-import re
+import json
 from http.server import BaseHTTPRequestHandler, HTTPServer
-from socketserver import BaseServer
 from urllib.parse import parse_qs
-
-from src.server.routes import ServerRoutes
 
 
 class ShellHandler(BaseHTTPRequestHandler):
-    def __init__(self,
-                 request: bytes,
-                 client_address: [str, int],
-                 server: BaseServer):
-        self.routes = ServerRoutes(self)
-        self.route = None
-        self.subpath = None
-        self.data = None
-        super().__init__(request, client_address, server)
+    def do_GET(self) -> None:
+        self.send_header("Content-type", "application/json")
+        self._set_headers()
+        self.wfile.write(json.dumps({"status": "ok"}).encode())
 
-    @property
-    def shell_prompt(self):
-        user, host, pwd = self.headers.get("X-Shell-Prompt").split(";")
-        return f"{user}@{host}:{pwd}$ "
+    def do_POST(self) -> None:
+        length = int(self.headers.get("Content-Length"))
+        request_body: dict[str, list[str]] = parse_qs(
+            self.rfile.read(length).decode())
+        for mode, args in request_body.items():
+            getattr(self, mode)(args)
 
-    def do_GET(self):
+    def _set_headers(self) -> None:
+        self.send_response(200)
+        self.end_headers()
+
+    def prompt(self, shell_prompt: list[str]) -> None:
         try:
-            response = input(self.shell_prompt)
+            response = input(*shell_prompt)
         except EOFError:
             raise KeyboardInterrupt
-        self.send_response(200)
-        self.send_header("Content-type", "text/html")
-        self.end_headers()
+        self._set_headers()
         self.wfile.write(response.encode())
 
-    def do_POST(self):
-        length = int(self.headers['Content-Length'])
-        self.data = parse_qs(self.rfile.read(length).decode())
-        self.route, self.subpath = self._split_path()
-        try:
-            getattr(self.routes, self.route)()
-        except AttributeError:
-            print(*self.data.get("contents", ""), end="")
-        self.send_response(200)
-        self.end_headers()
-
-    def _split_path(self):
-        split_path = re.match(r"/(.*)/(.*)$", self.path)
-        return "webroot", "" if split_path is None else split_path.groups()
+    def output(self, client_output: list[str]) -> None:
+        print(*client_output, end="")
+        self._set_headers()
 
     def log_message(self, *args, **kwargs):
         """Suppress sending of log messages to STDOUT."""
