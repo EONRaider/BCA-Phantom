@@ -224,3 +224,6 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
+# Project files
+ca.crt
+server.pem

