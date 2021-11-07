@@ -24,7 +24,7 @@ echo -e "\n${or}
 Academy. Check it out at https://github.com/EONRaider/BCA-Basic-HTTPS-Reverse-Shell
 ${nc}"
 
-#==ACTION TAKEN BY THE CERTIFICATE AUTHORITY==============================================
+#==ACTIONS TAKEN BY THE CERTIFICATE AUTHORITY==============================================
 echo -e "\n${gr}
 [+] Step (1/4): Create our own Certificate Authority (CA). It will be used as an
 entity that signs all our certificates, acting as a trusted party that our
@@ -43,7 +43,7 @@ openssl req -x509 -new -nodes -key "${CA_KEY_FILE}" -sha512 -days "${VALID}" \
 -out "${CA_CERT_FILE}"
 echo -e "${or}\n   [>] File created: \"${CA_CERT_FILE}\"\n${nc}"
 
-#==ACTION TAKEN BY THE SERVER ADMINISTRATOR===============================================
+#==ACTIONS TAKEN BY THE SERVER ADMINISTRATOR===============================================
 echo -e "\n${gr}
 [+] Step (2/4): Create our server's private key and use it to sign its Certificate
 Signing Request. This document would be remotely sent to a real CA if this
@@ -61,7 +61,7 @@ your own server. A file named \"${SUBJ_CSR_FILE}\" will be generated.\n${nc}"
 openssl req -new -key "${SUBJ_KEY_FILE}" -out "${SUBJ_CSR_FILE}"
 echo -e "${or}\n   [>] File created: \"${SUBJ_CSR_FILE}\"\n${nc}"
 
-#==ACTION TAKEN BY THE CERTIFICATE AUTHORITY==============================================
+#==ACTIONS TAKEN BY THE CERTIFICATE AUTHORITY==============================================
 echo -e "\n${gr}
 [+] Step (3/4): Sign the Certificate Signing Request with the CA's private key.
 This process establishes that the CA has accepted our request and validated our server.
@@ -74,7 +74,7 @@ openssl x509 -req -in "${SUBJ_CSR_FILE}" -CA "${CA_CERT_FILE}" \
 -CAkey "${CA_KEY_FILE}" -CAcreateserial -out "${SUBJ_CRT_FILE}" -days "${VALID}"
 echo -e "${or}\n   [>] File created: \"${SUBJ_CRT_FILE}\"\n${nc}"
 
-#==ACTION TAKEN BY THE SERVER ADMINISTRATOR===============================================
+#==ACTIONS TAKEN BY THE SERVER ADMINISTRATOR===============================================
 echo -e "\n${gr}
 [+] Step (4/4): After receiving the signed certificate from the CA, we convert its
 contents to human-readable format and, finally, append it to the server's
@@ -95,10 +95,10 @@ echo -e "${or}   [>] File created: \"${SUBJ_PEM_FILE}\"\n${nc}"
 #==PROCESS COMPLETED======================================================================
 
 echo -e "${gr}"
-read -rp "[!] In case you are following a course or tutorial from BlackCode Academy,
-then the only files you will need are \"${SUBJ_PEM_FILE}\" and \"${CA_CERT_FILE}\".
-You can safely delete all the other files that have been generated right now or
-keep them for further analysis. Would you like to delete these files? (Y/N) " DELYN
+read -rp "[!] From now on the only files you will need are \"${SUBJ_PEM_FILE}\"
+and \"${CA_CERT_FILE}\". You can safely delete all the other files that have been
+generated right now or keep them for further analysis. Would you like to delete
+these files? (Y/N) " DELYN
 echo -e "${nc}\n"
 
 case ${DELYN} in
