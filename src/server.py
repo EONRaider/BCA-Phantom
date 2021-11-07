@@ -48,6 +48,39 @@ class ShellHandler(BaseHTTPRequestHandler):
         pass
 
 
+class ShellServer:
+    def __init__(self, host: str, port: int, certfile: [str, Path]):
+        self._host = host
+        self._port = port
+        self._certfile = certfile
+        self.server_address = self._host, self._port
+
+    @property
+    def _certfile(self) -> Path:
+        return self.__certfile
+
+    @_certfile.setter
+    def _certfile(self, path: [str, Path]):
+        self.__certfile = Path(path)
+        if not self.__certfile.exists():
+            raise FileNotFoundError("Error: A server certificate is required "
+                                    "to start the application.")
+
+    def execute(self) -> None:
+        with HTTPServer(self.server_address, ShellHandler) as httpd:
+            try:
+                print("[+] Server started on https://{0}:{1}".format(
+                    *self.server_address))
+                print("[+] Waiting for connections...\n")
+                httpd.socket = ssl.wrap_socket(sock=httpd.socket,
+                                               server_side=True,
+                                               certfile=str(self._certfile),
+                                               ssl_version=ssl.PROTOCOL_TLS)
+                httpd.serve_forever()
+            except KeyboardInterrupt:
+                print("\n[!] Shutting down the server...")
+
+
 if __name__ == '__main__':
     import argparse
 
@@ -71,20 +104,6 @@ if __name__ == '__main__':
                              "server's certificate.")
     _args = parser.parse_args()
 
-    if _args.certfile is None:
-        '''Use the 'server.pem' certificate file created by default by the 
-        'generate_certificates.sh' shell script'''
-        _args.certfile = str(Path(__file__).parents[1].joinpath("server.pem"))
-
-    server_sock = _args.host, _args.port
-
-    with HTTPServer(server_sock, ShellHandler) as httpd:
-        try:
-            print('[>>>] Server started on https://{}:{}'.format(*server_sock))
-            httpd.socket = ssl.wrap_socket(sock=httpd.socket,
-                                           server_side=True,
-                                           certfile=_args.certfile,
-                                           ssl_version=ssl.PROTOCOL_TLS)
-            httpd.serve_forever()
-        except KeyboardInterrupt:
-            print('\n[!] Shutting down the server...')
+    ShellServer(host=_args.host,
+                port=_args.port,
+                certfile=_args.certfile).execute()
