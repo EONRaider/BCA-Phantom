@@ -21,21 +21,25 @@ class ShellHandler(BaseHTTPRequestHandler):
         request_body: dict[str, list[str]] = parse_qs(
             self.rfile.read(length).decode())
         for mode, args in request_body.items():
-            getattr(self, mode)(args)
+            try:
+                getattr(self, f"_{mode}")(args)
+            except AttributeError:
+                self._set_headers(404)
 
-    def _set_headers(self) -> None:
-        self.send_response(200)
+    def _set_headers(self, response_code: int = 200) -> None:
+        self.send_response(response_code)
         self.end_headers()
 
-    def prompt(self, shell_prompt: list[str]) -> None:
+    def _prompt(self, shell_prompt: list[str]) -> None:
+        shell = "[{0}:{1}] {2}".format(*self.client_address, *shell_prompt)
         try:
-            response = input(*shell_prompt)
+            response = input(shell)
         except EOFError:
             raise KeyboardInterrupt
         self._set_headers()
         self.wfile.write(response.encode())
 
-    def output(self, client_output: list[str]) -> None:
+    def _output(self, client_output: list[str]) -> None:
         print(*client_output, end="")
         self._set_headers()
 
