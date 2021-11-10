@@ -32,10 +32,10 @@ class ShellHandler(BaseHTTPRequestHandler):
             except AttributeError:
                 self._set_headers(404)
 
-    def _prompt(self, client_output: list[str]) -> None:
-        gc, nc = "\x1b[0;32m", "\x1b[0m"  # Green color, no color
+    def _prompt(self, shell_info: list[str]) -> None:
+        gc, nc = "\x1b[0;32m", "\x1b[0m"  # green color, no color
         shell = "{0}[{1}:{2}]{3} {4}".format(gc, *self.client_address,
-                                             nc, *client_output)
+                                             nc, *shell_info)
         try:
             response = input(shell)
         except EOFError:
