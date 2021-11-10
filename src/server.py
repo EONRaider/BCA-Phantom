@@ -119,41 +119,38 @@ class ShellServer:
 if __name__ == '__main__':
     import argparse
 
-    parser = argparse.ArgumentParser(
-        description="Basic HTTPS Reverse Shell Server")
-    parser.add_argument("--host",
+    parser = argparse.ArgumentParser(description="HTTPS Reverse Shell Server")
+    parser.add_argument("host",
                         type=str,
-                        default="localhost",
-                        metavar="<hostname>",
+                        metavar="<hostname/address>",
                         help="Server address or hostname.")
     parser.add_argument("-p", "--port",
                         type=int,
-                        default=4443,
+                        required=True,
                         metavar="<port>",
                         help="Port number to bind the server to.")
     parser.add_argument("--server-cert",
                         type=str,
-                        default=None,
                         metavar="<path>",
                         help="Absolute path to a file containing the server's "
                              "certificate.")
     parser.add_argument("--ca-cert",
                         type=str,
-                        default=None,
                         metavar="<path>",
                         help="Absolute path to a file containing the "
                              "certificate for the Certificate Authority (CA).")
     parser.add_argument("--ca-private-key",
                         type=str,
-                        default=None,
                         metavar="<path>",
                         help="Absolute path to a file containing the private "
                              "key of the Certificate Authority (CA).")
 
     _args = parser.parse_args()
 
-    ShellServer(host=_args.host,
-                port=_args.port,
-                server_cert=_args.server_cert,
-                ca_cert=_args.ca_cert,
-                ca_private_key=_args.ca_private_key).execute()
+    ShellServer(
+        host=_args.host,
+        port=_args.port,
+        server_cert=_args.server_cert,
+        ca_cert=_args.ca_cert,
+        ca_private_key=_args.ca_private_key
+    ).execute()
