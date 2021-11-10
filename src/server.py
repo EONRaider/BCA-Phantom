@@ -131,14 +131,29 @@ if __name__ == '__main__':
                         default=4443,
                         metavar="<port>",
                         help="Port number to bind the server to.")
-    parser.add_argument("--certfile",
+    parser.add_argument("--server-cert",
+                        type=str,
+                        default=None,
+                        metavar="<path>",
+                        help="Absolute path to a file containing the server's "
+                             "certificate.")
+    parser.add_argument("--ca-cert",
                         type=str,
                         default=None,
                         metavar="<path>",
                         help="Absolute path to a file containing the "
-                             "server's certificate.")
+                             "certificate for the Certificate Authority (CA).")
+    parser.add_argument("--ca-private-key",
+                        type=str,
+                        default=None,
+                        metavar="<path>",
+                        help="Absolute path to a file containing the private "
+                             "key of the Certificate Authority (CA).")
+
     _args = parser.parse_args()
 
     ShellServer(host=_args.host,
                 port=_args.port,
-                certfile=_args.certfile).execute()
+                server_cert=_args.server_cert,
+                ca_cert=_args.ca_cert,
+                ca_private_key=_args.ca_private_key).execute()
