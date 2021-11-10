@@ -121,10 +121,12 @@ class ShellServer:
             self._ca = CA.from_pem(
                 cert_bytes=bytes(self._ca_cert),
                 private_key_bytes=bytes(self.ca_private_key))
-        except TypeError:  # No certificate for the CA was found
+        except TypeError:  # path is set to None
             self._ca_cert = Path(__file__).parent.joinpath("ca.pem")
-            self._ca = CA()
-            self._ca.cert_pem.write_to_path(str(self._ca_cert))
+            if not self._ca_cert.is_file():
+                # path is valid but the certificate does not exist yet
+                self._ca = CA()
+                self._ca.cert_pem.write_to_path(str(self._ca_cert))
 
     @property
     def server_cert(self) -> Path:
@@ -139,10 +141,10 @@ class ShellServer:
     def server_cert(self, path: [str, Path, None]):
         try:
             self._server_cert = Path(path)
-        except TypeError:  # The path is set to None
+        except TypeError:  # path is set to None
             self._server_cert = Path(__file__).parent.joinpath("server.pem")
         if not self._server_cert.is_file():
-            # The path is valid but the certificate does not exist yet
+            # path is valid but the certificate does not exist yet
             server_cert = self._ca.issue_cert(self._host)
             server_cert.private_key_and_cert_chain_pem.write_to_path(
                 str(self._server_cert))
