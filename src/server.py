@@ -13,16 +13,25 @@ from trustme import CA
 
 
 class ShellHandler(BaseHTTPRequestHandler):
+    """Handle all HTTP requests received by the ShellServer."""
+
     def _set_headers(self, response_code: int = 200) -> None:
         self.send_response(response_code)
         self.end_headers()
 
     def do_GET(self) -> None:
+        """Returns a simple JSON status message for the purpose of
+        health checking."""
+
         self.send_header("Content-type", "application/json")
         self._set_headers()
         self.wfile.write(json.dumps({"status": "ok"}).encode())
 
     def do_POST(self) -> None:
+        """Handles POST requests by dispatching the message received
+        from each client to their respective methods, depending on the
+        contents of the body."""
+
         length = int(self.headers.get("Content-Length"))
         request_body: dict[str, list[str]] = parse_qs(
             self.rfile.read(length).decode())
@@ -33,6 +42,10 @@ class ShellHandler(BaseHTTPRequestHandler):
                 self._set_headers(404)
 
     def _prompt(self, shell_info: list[str]) -> None:
+        """Builds the shell prompt with basic information received from
+        the client, waits for the user's input and sends it back as a
+        response."""
+
         gc, nc = "\x1b[0;32m", "\x1b[0m"  # green color, no color
         shell = "{0}[{1}:{2}]{3} {4}".format(gc, *self.client_address,
                                              nc, *shell_info)
@@ -44,6 +57,9 @@ class ShellHandler(BaseHTTPRequestHandler):
         self.wfile.write(response.encode())
 
     def _output(self, client_output: list[str]) -> None:
+        """Sends the client's output to the user's STDOUT for evaluation
+        of results."""
+
         print(*client_output, end="")
         self._set_headers()
 
@@ -59,6 +75,24 @@ class ShellServer:
                  server_cert: [str, Path] = None,
                  ca_cert: [str, Path] = None,
                  ca_private_key: [str, Path] = None):
+        """Create a Reverse Shell Server that communicates with clients
+        through HTTPS.
+
+        :param host: Hostname or address of the server.
+        :param port: Port number to be used by the server.
+        :param server_cert: (Optional) Absolute path to a file
+            containing the server's certificate. A certificate will be
+            created for the server if set to None.
+        :param ca_cert: (Optional) Absolute path to a file containing
+            the certificate for the Certificate Authority (CA). This CA
+            will be trusted by both the server and its clients. A CA
+            will be created if set to None.
+        :param ca_private_key: (Optional) Absolute path to a file
+            containing the private key for the CA. A private key with a
+            default length of 2048 bits will be created for the CA if
+            set to None.
+        """
+
         self._host = host
         self._port = port
         self._ca = None
@@ -69,6 +103,11 @@ class ShellServer:
 
     @property
     def ca_cert(self) -> Path:
+        """
+        Gets a valid path to a CA certificate file.
+        Sets a path to a CA file if it is valid or creates a new pair of
+        RSA keys that are used to generate a new CA certificate file.
+        """
         return self._ca_cert
 
     @ca_cert.setter
@@ -82,21 +121,28 @@ class ShellServer:
             self._ca = CA.from_pem(
                 cert_bytes=bytes(self._ca_cert),
                 private_key_bytes=bytes(self.ca_private_key))
-        except TypeError:
+        except TypeError:  # No certificate for the CA was found
             self._ca_cert = Path(__file__).parent.joinpath("ca.pem")
             self._ca = CA()
             self._ca.cert_pem.write_to_path(str(self._ca_cert))
 
     @property
     def server_cert(self) -> Path:
+        """
+        Gets a valid path to the server's certificate file.
+        Sets a path to the server's certificate file if it is valid or
+        creates a new certificate signed by the established CA.
+        """
         return self._server_cert
 
     @server_cert.setter
     def server_cert(self, path: [str, Path, None]):
         try:
             self._server_cert = Path(path)
-        except TypeError:  # path is None
+        except TypeError:  # The path is set to None
             self._server_cert = Path(__file__).parent.joinpath("server.pem")
+        if not self._server_cert.is_file():
+            # The path is valid but the certificate does not exist yet
             server_cert = self._ca.issue_cert(self._host)
             server_cert.private_key_and_cert_chain_pem.write_to_path(
                 str(self._server_cert))
