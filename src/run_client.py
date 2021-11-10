@@ -1,3 +1,11 @@
+#!/usr/bin/env python3
+# https://github.com/EONRaider/BCA-HTTPS-Reverse-Shell
+
+__author__ = "EONRaider @ keybase.io/eonraider"
+
+"""This module executes the Reverse Shell Client from settings parsed 
+from the shell.cfg file found in this same directory."""
+
 from configparser import ConfigParser
 from pathlib import Path
 
