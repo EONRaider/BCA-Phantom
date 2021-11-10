@@ -11,6 +11,10 @@ from urllib.parse import parse_qs
 
 
 class ShellHandler(BaseHTTPRequestHandler):
+    def _set_headers(self, response_code: int = 200) -> None:
+        self.send_response(response_code)
+        self.end_headers()
+
     def do_GET(self) -> None:
         self.send_header("Content-type", "application/json")
         self._set_headers()
@@ -26,12 +30,10 @@ class ShellHandler(BaseHTTPRequestHandler):
             except AttributeError:
                 self._set_headers(404)
 
-    def _set_headers(self, response_code: int = 200) -> None:
-        self.send_response(response_code)
-        self.end_headers()
-
-    def _prompt(self, shell_prompt: list[str]) -> None:
-        shell = "[{0}:{1}] {2}".format(*self.client_address, *shell_prompt)
+    def _prompt(self, client_output: list[str]) -> None:
+        gc, nc = "\x1b[0;32m", "\x1b[0m"  # Green color, no color
+        shell = "{0}[{1}:{2}]{3} {4}".format(gc, *self.client_address,
+                                             nc, *client_output)
         try:
             response = input(shell)
         except EOFError:
