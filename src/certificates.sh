@@ -96,14 +96,14 @@ echo -e "${or}   [>] File created: \"${SUBJ_PEM_FILE}\"\n${nc}"
 
 echo -e "${gr}"
 read -rp "[!] From now on the only files you will need are \"${SUBJ_PEM_FILE}\"
-and \"${CA_CERT_FILE}\". You can safely delete all the other files that have been
-generated right now or keep them for further analysis. Would you like to delete
-these files? (Y/N) " DELYN
+\"${CA_KEY_FILE}\"and \"${CA_CERT_FILE}\". You can safely delete all the other
+files that have been generated right now or keep them for further analysis. Would
+you like to delete these extra files? (Y/N) " DELYN
 echo -e "${nc}\n"
 
 case ${DELYN} in
-  [Yy]* ) rm "${CA_KEY_FILE}" "${SUBJ_KEY_FILE}" "${SUBJ_CSR_FILE}" \
-    "${SUBJ_CRT_FILE}" "${SUBJ_CRT_READ_FILE}" ./*.srl
+  [Yy]* ) rm  "${SUBJ_KEY_FILE}" "${SUBJ_CSR_FILE}" "${SUBJ_CRT_FILE}" \
+    "${SUBJ_CRT_READ_FILE}" ./*.srl
     echo -e "${or}   [!] SUCCESS: Extra files were deleted.\n${nc}";;
   [Nn]* ) echo -e "${or}   [!] SUCCESS: Extra files will be kept.\n${nc}";;
 esac
