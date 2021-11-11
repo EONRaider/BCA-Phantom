@@ -5,7 +5,9 @@ description = ""
 authors = ["EONRaider <livewire_voodoo@protonmail.com>"]
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = ">=3.9,<3.11"
+trustme = "^0.9.0"
+pyinstaller = "^4.7"
 
 [tool.poetry.dev-dependencies]
 
