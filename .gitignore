@@ -223,3 +223,6 @@ dmypy.json
 
 # Cython debug symbols
 cython_debug/
+
+# Project-specific files
+client.cfg
