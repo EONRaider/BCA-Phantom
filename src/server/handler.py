@@ -49,9 +49,8 @@ class ShellHandler(BaseHTTPRequestHandler):
         """Builds the shell prompt with basic information received from
         the client, waits for the user's input and sends it back as a
         response."""
-        gc, nc = "\x1b[0;32m", "\x1b[0m"  # green color, no color
-        shell = ("\t{0}[{1}:{2}]{3} {4}"
-                 .format(gc, *self.client_address, nc, *shell_info)
+        shell = ("\t[{0}:{1}] {2}"
+                 .format(*self.client_address, *shell_info)
                  .expandtabs(3))
         try:
             response = input(shell)

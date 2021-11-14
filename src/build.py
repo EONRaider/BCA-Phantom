@@ -6,12 +6,22 @@ __author__ = "EONRaider @ keybase.io/eonraider"
 import argparse
 import configparser
 import functools
+import platform
 from pathlib import Path
 
 import PyInstaller.__main__
 
 
+def os_sep() -> str:
+    """Gets the path separator for the current operating system.
+    Windows systems use ';' as a separator, whereas macOS/Linux/Unix
+    use ':'."""
+    return {"Windows": ";"}.get(platform.system(), ":")
+
+
 def pyinstaller(func):
+    """Decorator that takes the arguments returned by a function
+    and executes PyInstaller."""
     @functools.wraps(func)
     def build_binary(*args, **kwargs):
         PyInstaller.__main__.run(func(*args, **kwargs))
@@ -20,14 +30,23 @@ def pyinstaller(func):
 
 @pyinstaller
 def server(args: argparse.Namespace) -> list[str]:
+    """Set-up the arguments required by PyInstaller to build the
+    server binary."""
     cmd = ["server/server.py", "--onefile"]
     if args.server_cert is not None:
-        cmd.extend(["--add-data", f"{args.server_cert}:."])
+        cmd.extend(["--add-data", f"{args.server_cert}{os_sep()}."])
     return cmd
 
 
 @pyinstaller
 def client(args: argparse.Namespace) -> list[str]:
+    """Set-up the arguments required by PyInstaller to build the
+    client binary."""
+
+    '''A configuration file named 'client.cfg' is created with 
+    hard-coded server address, port and CA information that allows 
+    seamless connection of the binary client to the server. This file 
+    is bundled in the binary and read on execution.'''
     config = configparser.ConfigParser()
     config["CLIENT"] = {
         "host": args.host,
@@ -38,10 +57,11 @@ def client(args: argparse.Namespace) -> list[str]:
     with open(file="client.cfg", mode="w") as config_file:
         config.write(config_file)
 
+    sep = os_sep()
     cmd = ["client/client.py",
            "--onefile",
-           "--add-data", f"{args.ca_cert}:.",
-           "--add-data", "client.cfg:."]
+           "--add-data", f"{args.ca_cert}{sep}.",
+           "--add-data", f"client.cfg{sep}."]
 
     return cmd
 
