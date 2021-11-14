@@ -99,13 +99,12 @@ class ShellServer:
         return self.host, self.port
 
     @property
-    def base_path(self) -> Path:
-        """
-        Gets the absolute path for the directory of the current file.
-        """
+    def _base_path(self) -> Path:
+        """Gets the absolute path for the directory from which this file
+        is being executed."""
         try:
             '''If the file is compiled as a binary by PyInstaller, its 
-            path will be set by sys._MEIPASS'''
+            path will be set as sys._MEIPASS'''
             return Path(sys._MEIPASS)
         except AttributeError:
             return Path(__file__).parent.absolute()
@@ -121,7 +120,7 @@ class ShellServer:
 
     @server_cert.setter
     def server_cert(self, path: [str, Path]) -> None:
-        server_cert = self.base_path.joinpath("server.pem") if \
+        server_cert = self._base_path.joinpath("server.pem") if \
             path is None else Path(path)
         if not server_cert.exists():  # Create server certificate
             (ca := CA()).cert_pem.write_to_path("ca.pem")
