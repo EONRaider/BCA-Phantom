@@ -3,19 +3,30 @@
 
 __author__ = "EONRaider @ keybase.io/eonraider"
 
+import argparse
 import configparser
+import functools
 
-import PyInstaller.__main__ as pyinstaller
+import PyInstaller.__main__
 
 
-def server(args):
+def pyinstaller(func):
+    @functools.wraps(func)
+    def build_binary(*args, **kwargs):
+        PyInstaller.__main__.run(func(*args, **kwargs))
+    return build_binary
+
+
+@pyinstaller
+def server(args: argparse.Namespace) -> list[str]:
     cmd = ["server.py", "--onefile"]
     if args.server_cert is not None:
         cmd.extend(["--add-data", f"{args.server_cert}:."])
-    pyinstaller.run(cmd)
+    return cmd
 
 
-def client(args):
+@pyinstaller
+def client(args: argparse.Namespace) -> list[str]:
     config = configparser.ConfigParser()
     config["CLIENT"] = {
         "host": args.host,
@@ -30,12 +41,11 @@ def client(args):
            "--onefile",
            "--add-data", f"{args.ca_cert}:.",
            "--add-data", "client.cfg:."]
-    pyinstaller.run(cmd)
+
+    return cmd
 
 
 if __name__ == "__main__":
-    import argparse
-
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers()
 
@@ -45,8 +55,8 @@ if __name__ == "__main__":
         type=str,
         metavar="<path>",
         help="Path to a file containing the server certificate in PEM format. "
-             "This certificate will be packaged with the compiled file for "
-             "deployment."
+             "This certificate will be packaged with the compiled server "
+             "binary for deployment."
     )
     server_parser.set_defaults(func=server)
 
@@ -69,7 +79,7 @@ if __name__ == "__main__":
         metavar="<path>",
         help="Path to a file containing the certificate for the Certificate "
              "Authority (CA) in PEM format. This certificate will be packaged "
-             "with the compiled file for deployment."
+             "with the compiled client binary for deployment."
     )
     client_parser.set_defaults(func=client)
 
