@@ -42,9 +42,8 @@ class ShellHandler(BaseHTTPRequestHandler):
 
     def _open_session(self, session_info: list[str]) -> None:
         """Displays client system information on connection."""
-        print("[>] Connection established")
-        host, port = self.client_address
-        info = {"Client address": f"{host}:{str(port)}"}
+        print("[>] Connection established:")
+        info = {"Client address": "{0}:{1}".format(*self.client_address)}
         info |= json.loads(session_info[0])
         for key, value in info.items():
             print("\t[+] {0:.<20} {1}".format(key, value).expandtabs(3))
