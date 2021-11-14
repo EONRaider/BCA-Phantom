@@ -26,11 +26,13 @@ class ClientCommands:
         self.client.post({mode: message})
 
     def open_session(self) -> None:
+        """Builds and sends basic information on the client system upon
+        opening a connection to the server."""
         session_info = {
             "Client time": strftime("%Y-%m-%d %H:%M:%S", localtime()),
             "OS": platform.system(),
             "Hostname": platform.node(),
-            "Kernel": f"{platform.release()} {platform.version()} ",
+            "Kernel": f"{platform.release()} {platform.version()}",
             "Platform": f"{platform.machine()}"
         }
         self._send(json.dumps(session_info), mode="open_session")
