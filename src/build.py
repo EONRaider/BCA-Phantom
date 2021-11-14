@@ -20,6 +20,8 @@ def os_sep() -> str:
 
 
 def pyinstaller(func):
+    """Decorator that takes the arguments returned by a function
+    and executes PyInstaller."""
     @functools.wraps(func)
     def build_binary(*args, **kwargs):
         PyInstaller.__main__.run(func(*args, **kwargs))
@@ -28,6 +30,8 @@ def pyinstaller(func):
 
 @pyinstaller
 def server(args: argparse.Namespace) -> list[str]:
+    """Set-up the arguments required by PyInstaller to build the
+    server binary."""
     cmd = ["server/server.py", "--onefile"]
     if args.server_cert is not None:
         cmd.extend(["--add-data", f"{args.server_cert}{os_sep()}."])
@@ -36,6 +40,13 @@ def server(args: argparse.Namespace) -> list[str]:
 
 @pyinstaller
 def client(args: argparse.Namespace) -> list[str]:
+    """Set-up the arguments required by PyInstaller to build the
+    client binary."""
+
+    '''A configuration file named 'client.cfg' is created with 
+    hard-coded server address, port and CA information that allows 
+    seamless connection of the binary client to the server. This file 
+    is bundled in the binary and read on execution.'''
     config = configparser.ConfigParser()
     config["CLIENT"] = {
         "host": args.host,
