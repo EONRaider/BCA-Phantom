@@ -13,6 +13,7 @@ import ssl
 import subprocess
 import sys
 from pathlib import Path
+from time import localtime, strftime
 from urllib import request, parse
 
 
@@ -32,6 +33,7 @@ class ClientCommands:
 
     def open_session(self) -> None:
         session_info = {
+            "Client time": strftime("%Y-%m-%d %H:%M:%S", localtime()),
             "OS": platform.system(),
             "Hostname": platform.node(),
             "Kernel": f"{platform.release()} {platform.version()} ",
