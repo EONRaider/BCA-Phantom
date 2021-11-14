@@ -6,6 +6,7 @@ __author__ = "EONRaider @ keybase.io/eonraider"
 import argparse
 import configparser
 import functools
+from pathlib import Path
 
 import PyInstaller.__main__
 
@@ -19,7 +20,7 @@ def pyinstaller(func):
 
 @pyinstaller
 def server(args: argparse.Namespace) -> list[str]:
-    cmd = ["server.py", "--onefile"]
+    cmd = ["server/server.py", "--onefile"]
     if args.server_cert is not None:
         cmd.extend(["--add-data", f"{args.server_cert}:."])
     return cmd
@@ -31,13 +32,13 @@ def client(args: argparse.Namespace) -> list[str]:
     config["CLIENT"] = {
         "host": args.host,
         "port": str(args.port),
-        "ca-certificate": args.ca_cert
+        "ca-certificate": Path(args.ca_cert).name
     }
 
     with open(file="client.cfg", mode="w") as config_file:
         config.write(config_file)
 
-    cmd = ["client.py",
+    cmd = ["client/client.py",
            "--onefile",
            "--add-data", f"{args.ca_cert}:.",
            "--add-data", "client.cfg:."]
