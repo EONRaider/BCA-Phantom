@@ -6,9 +6,17 @@ __author__ = "EONRaider @ keybase.io/eonraider"
 import argparse
 import configparser
 import functools
+import platform
 from pathlib import Path
 
 import PyInstaller.__main__
+
+
+def os_sep() -> str:
+    """Gets the path separator for the current operating system.
+    Windows systems use ';' as a separator, whereas macOS/Linux/Unix
+    use ':'."""
+    return {"Windows": ";"}.get(platform.system(), ":")
 
 
 def pyinstaller(func):
@@ -22,7 +30,7 @@ def pyinstaller(func):
 def server(args: argparse.Namespace) -> list[str]:
     cmd = ["server/server.py", "--onefile"]
     if args.server_cert is not None:
-        cmd.extend(["--add-data", f"{args.server_cert}:."])
+        cmd.extend(["--add-data", f"{args.server_cert}{os_sep()}."])
     return cmd
 
 
@@ -38,10 +46,11 @@ def client(args: argparse.Namespace) -> list[str]:
     with open(file="client.cfg", mode="w") as config_file:
         config.write(config_file)
 
+    sep = os_sep()
     cmd = ["client/client.py",
            "--onefile",
-           "--add-data", f"{args.ca_cert}:.",
-           "--add-data", "client.cfg:."]
+           "--add-data", f"{args.ca_cert}{sep}.",
+           "--add-data", f"client.cfg{sep}."]
 
     return cmd
 
