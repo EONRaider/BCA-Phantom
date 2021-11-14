@@ -81,11 +81,11 @@ class Client:
         self.ca_cert = ca_cert
         self._ssl_context = ssl.create_default_context(
             purpose=ssl.Purpose.SERVER_AUTH,
-            cafile=str(self.base_path.joinpath("ca.pem"))
+            cafile=str(self._base_path.joinpath("ca.pem"))
         )
 
     @property
-    def base_path(self) -> Path:
+    def _base_path(self) -> Path:
         """
         Gets the absolute path for the directory of the current file.
         """
@@ -164,12 +164,19 @@ if __name__ == "__main__":
     _args = parser.parse_args()
 
     if all((_args.host, _args.port)):
+        '''Client is executed from source code by the system interpreter 
+        for development purposes. All configuration options are parsed 
+        from the CLI.'''
         Client(
             server_address=_args.host,
             server_port=_args.port,
             ca_cert=_args.ca_cert
         ).execute()
     else:
+        '''Client is executed as a binary compiled by PyInstaller. All 
+        configuration options are read from the client.cfg file that is 
+        bundled in the binary during the build process defined in the 
+        build.py file.'''
         config = configparser.ConfigParser()
         file = config.read(Path(sys._MEIPASS).joinpath("client.cfg"))
         if len(file) == 0:
