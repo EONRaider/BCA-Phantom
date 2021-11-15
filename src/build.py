@@ -16,7 +16,7 @@ def os_sep() -> str:
     """Gets the path separator for the current operating system.
     Windows systems use ';' as a separator, whereas macOS/Linux/Unix
     use ':'."""
-    return {"Windows": ";"}.get(platform.system(), ":")
+    return ";" if platform.system() == "Windows" else ":"
 
 
 def pyinstaller(func):
