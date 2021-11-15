@@ -44,8 +44,8 @@ echo -e "\n${or}   [>] File created: \"${CA_CERT_FILE}\"${nc}\n"
 
 echo -e "${gr}
 [+] Step (2/2): Create our server's private key and use it to sign its Certificate
-Signing Request. This document would be remotely sent to a real CA if this
-application were to be deployed in a production environment and trusted publicly.
+Signing Request (CSR). This CSR will be signed by our CA and, finally, the server
+certificate will be issued.
 ${nc}\n"
 
 # 3. Generate a private RSA key and a Certificate Signing Request (CSR) for the
@@ -61,14 +61,14 @@ openssl req -nodes \
 echo -e "${or}   [>] File created: \"${SUBJ_KEY_FILE}\"${nc}"
 echo -e "${or}   [>] File created: \"${SUBJ_CSR_FILE}\"${nc}\n"
 
-# 4. Sign the server CSR with the CA certificate and private key
+# 4. Sign the server CSR with the CA certificate and private key:
 openssl x509 -req -days "${VALIDITY}" -set_serial 01 \
    -in "${SUBJ_CSR_FILE}" \
    -out "${SUBJ_CERT_FILE}" \
    -CA "${CA_CERT_FILE}" \
    -CAkey "${CA_KEY_FILE}"
 
-# 5. Verify the server certificate
+# 5. Verify the server certificate:
 openssl verify -CAfile "${CA_CERT_FILE}" "${SUBJ_CERT_FILE}"
 
 #==PROCESS COMPLETED============================================================
