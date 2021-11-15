@@ -8,6 +8,7 @@ import configparser
 import functools
 import platform
 from pathlib import Path
+from typing import Container
 
 import PyInstaller.__main__
 
@@ -20,11 +21,12 @@ def os_sep() -> str:
 
 
 def pyinstaller(func):
-    """Decorator that takes the arguments returned by a function
-    and executes PyInstaller."""
+    """Decorator that takes a container of strings returned by a
+    function and passes them as arguments to the PyInstaller runner."""
     @functools.wraps(func)
     def build_binary(*args, **kwargs):
-        PyInstaller.__main__.run(func(*args, **kwargs))
+        cmd: Container[str] = func(*args, **kwargs)
+        PyInstaller.__main__.run(cmd)
     return build_binary
 
 
