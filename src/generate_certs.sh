@@ -62,7 +62,9 @@ echo -e "${or}   [>] File created: \"${SUBJ_KEY_FILE}\"${nc}"
 echo -e "${or}   [>] File created: \"${SUBJ_CSR_FILE}\"${nc}\n"
 
 # 4. Sign the server CSR with the CA certificate and private key:
-openssl x509 -req -days "${VALIDITY}" -set_serial 01 \
+openssl x509 -req \
+   -set_serial 01 \
+   -days "${VALIDITY}" \
    -in "${SUBJ_CSR_FILE}" \
    -out "${SUBJ_CERT_FILE}" \
    -CA "${CA_CERT_FILE}" \
@@ -74,10 +76,10 @@ openssl verify -CAfile "${CA_CERT_FILE}" "${SUBJ_CERT_FILE}"
 #==PROCESS COMPLETED============================================================
 
 echo -e "${gr}"
-read -rp "[!] From now on the only files you will need are \"${SUBJ_CERT_FILE}\"
-and \"${CA_CERT_FILE}\". You can safely delete all the other files that have been
-generated right now or keep them for further analysis. Would you like to delete
-these extra files? (Y/N) " DELYN
+read -rp "[!] From now on the only files you will need are \"${SUBJ_CERT_FILE}\",
+\"${CA_KEY_FILE}\" and \"${CA_CERT_FILE}\". You can safely delete all the other
+files that have been generated right now or keep them for further analysis. Would
+you like to delete these extra files? (Y/N) " DELYN
 echo -e "${nc}"
 
 case ${DELYN} in
