@@ -12,7 +12,7 @@ import sys
 from pathlib import Path
 from urllib import request, parse
 
-from commands import ClientCommands
+from src.client.commands import ClientCommands
 
 
 class Client:

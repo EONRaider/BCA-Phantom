@@ -8,7 +8,7 @@ import sys
 from http.server import HTTPServer
 from pathlib import Path
 
-from handler import ShellHandler
+from src.server.handler import ShellHandler
 
 from trustme import CA
 
