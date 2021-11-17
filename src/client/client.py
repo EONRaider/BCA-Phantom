@@ -106,11 +106,11 @@ if __name__ == "__main__":
 
     try:
         '''Client is executed as a binary compiled by PyInstaller. All 
-        configuration options are read from the client.cfg file that is 
-        bundled in the binary during the build process defined in the 
-        build.py file. In this case the location of all added data will 
-        be a temporary directory set by sys._MEIPASS. If such directory 
-        does not exist an AttributeError is raised.'''
+        configuration options are read from the 'client.cfg' file that 
+        is bundled in the binary during the build process defined in the 
+        'build.py' file. In this case the location of all added data 
+        will be a temporary directory set by sys._MEIPASS. If such 
+        directory does not exist then an AttributeError is raised.'''
         tmp_dir = Path(sys._MEIPASS)
         config = configparser.ConfigParser()
         config_file = config.read(tmp_dir.joinpath("client.cfg"))
