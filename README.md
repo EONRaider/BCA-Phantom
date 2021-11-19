@@ -1,11 +1,9 @@
 # Python 3 HTTPS Reverse Shell
 
 ![Python Version](https://img.shields.io/badge/python-3.9+-blue?style=for-the-badge&logo=python)
+[![CodeFactor Grade](https://img.shields.io/codefactor/grade/github/EONRaider/BCA-HTTPS-Reverse-Shell?label=CodeFactor&logo=codefactor&style=for-the-badge)](https://www.codefactor.io/repository/github/EONRaider/BCA-HTTPS-Reverse-Shell)
 ![OS](https://img.shields.io/badge/GNU%2FLinux-red?style=for-the-badge&logo=linux)
 ![OS](https://img.shields.io/badge/Windows-blue?style=for-the-badge&logo=windows)
-
-[![CodeFactor Grade](https://img.shields.io/codefactor/grade/github/EONRaider/BCA-HTTPS-Reverse-Shell?label=CodeFactor&logo=codefactor&style=for-the-badge)](https://www.codefactor.io/repository/github/EONRaider/BCA-HTTPS-Reverse-Shell)
-[![License](https://img.shields.io/github/license/EONRaider/BCA-HTTPS-Reverse-Shell?style=for-the-badge)](https://github.com/EONRaider/BCA-HTTPS-Reverse-Shell/blob/master/LICENSE)
 
 [![Reddit](https://img.shields.io/badge/Reddit-EONRaider-FF4500?style=flat-square&logo=reddit)](https://www.reddit.com/user/eonraider)
 [![Discord](https://img.shields.io/badge/Discord-EONRaider-7289DA?style=flat-square&logo=discord)](https://discord.gg/KVjWBptv)
