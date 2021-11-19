@@ -55,7 +55,7 @@ python build.py client --ca-cert /path/to/ca.pem
 ```
 
 ## Usage
-![usage](https://github.com/EONRaider/static/blob/dca14ec72efdabb952b6370d77a13a4c665f7cd6/https-reverse-shell/usage.gif)
+![usage](https://github.com/EONRaider/static/blob/97b0e81aee6eb0f2b255a26cd138299e2361d025/https-reverse-shell/usage.gif)
 
 ## Development mode (optional)
 You could optionally run the HTTPS Reverse Shell directly from a local Python 3 
