@@ -59,8 +59,9 @@ python build.py client --ca-cert /path/to/ca.pem
 
 ## Development mode (optional)
 You could optionally run the HTTPS Reverse Shell directly from a local Python 3 
-interpreter. Install all dependencies and run the `server.py` and `client.py` files. 
-All required certificates will be automatically generated for `localhost`.
+interpreter. [Install all dependencies](https://github.com/EONRaider/BCA-HTTPS-Reverse-Shell/tree/master#i-install-dependencies) 
+and run the `server.py` and `client.py` files. All required certificates will be 
+automatically generated for `localhost`.
 
 Execute the **Server** on one shell...
 ```shell
