@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# https://github.com/EONRaider/BCA-HTTPS-Reverse-Shell
+# https://github.com/EONRaider/BCA-Phantom
 
 __author__ = "EONRaider @ keybase.io/eonraider"
 
@@ -83,7 +83,9 @@ class ShellServer:
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description="HTTPS Reverse Shell Server")
+    parser = argparse.ArgumentParser(
+        description="Phantom - HTTPS Reverse Shell Server"
+    )
     parser.add_argument(
         "host",
         type=str,

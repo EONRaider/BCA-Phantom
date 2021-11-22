@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# https://github.com/EONRaider/BCA-HTTPS-Reverse-Shell
+# https://github.com/EONRaider/BCA-Phantom
 
 __author__ = "EONRaider @ keybase.io/eonraider"
 

@@ -1,5 +1,5 @@
 #!/bin/bash
-# https://github.com/EONRaider/BCA-HTTPS-Reverse-Shell
+# https://github.com/EONRaider/BCA-Phantom
 
 # Author: EONRaider @ keybase.io/eonraider
 
