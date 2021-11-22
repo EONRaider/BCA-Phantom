@@ -225,4 +225,4 @@ dmypy.json
 cython_debug/
 
 # Project-specific files
-client.cfg
+config.py
