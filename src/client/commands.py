@@ -13,8 +13,8 @@ from time import localtime, strftime
 
 class ClientCommands:
     def __init__(self, client):
-        """Dispatch commands received from the server to their respective
-        methods, depending on their format.
+        """Dispatch the commands received from the server to their
+        respective methods, depending on their format.
 
         :param client: Instance of Client through which commands will be
             received.
@@ -26,8 +26,8 @@ class ClientCommands:
         self.client.post({mode: message})
 
     def open_session(self) -> None:
-        """Builds and sends basic information on the client system upon
-        opening a connection to the server."""
+        """Builds and sends basic information about the client system
+        upon opening a connection to the server."""
         session_info = {
             "Client time": strftime("%Y-%m-%d %H:%M:%S", localtime()),
             "OS": platform.system(),
