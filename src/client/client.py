@@ -106,7 +106,7 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="Phantom - HTTPS Reverse Shell Client"
+        description="Phantom - HTTP(S) Reverse Shell Client"
     )
     parser.add_argument(
         "--host",
