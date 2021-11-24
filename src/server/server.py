@@ -17,17 +17,20 @@ class ShellServer:
     def __init__(self,
                  host: str,
                  port: int, *,
-                 server_cert: [str, Path] = None):
+                 server_cert: [str, Path] = None,
+                 unsecure: bool = False):
         """Create a Reverse Shell Server that communicates with clients
-        through HTTPS.
+        through HTTP(S).
 
         :param host: Server address or hostname.
         :param port: Port number to bind the server to.
         :param server_cert: Path to a file containing the server
             certificate in PEM format.
+        :param unsecure: Run the server in HTTP-only mode.
         """
         self.host = host
         self.port = port
+        self.unsecure = unsecure
         self.server_cert = server_cert
 
     @property
@@ -47,10 +50,9 @@ class ShellServer:
 
     @property
     def server_cert(self) -> Path:
-        """
-        Gets a valid path to the server certificate file.
+        """Gets a valid path to the server certificate file.
         Sets the path to the server certificate or creates a new CA that
-        signs it and writes to a file.
+        signs and writes it to a file.
         """
         return self._server_cert
 
@@ -58,7 +60,10 @@ class ShellServer:
     def server_cert(self, path: [str, Path]) -> None:
         server_cert = self._base_path.joinpath("server.pem") if \
             path is None else Path(path)
-        if not server_cert.exists():  # Create server certificate
+        if not server_cert.exists() and self.unsecure is False:
+            '''A default server certificate for 'localhost' is created 
+            if a certificate file is not supplied and unsecure mode is 
+            set to False'''
             (ca := CA()).cert_pem.write_to_path("ca.pem")
             signed_cert = ca.issue_cert(self.host)
             signed_cert.private_key_and_cert_chain_pem.write_to_path(
@@ -67,14 +72,18 @@ class ShellServer:
 
     def execute(self) -> None:
         with HTTPServer(self.server_address, ShellHandler) as httpd:
+            host, port = self.server_address
+            url_scheme = "http" if self.unsecure is True else "https"
             try:
-                print("[>] Server started on https://{0}:{1}".format(
-                    *self.server_address))
-                print("[>] Waiting for connections...")
-                httpd.socket = ssl.wrap_socket(sock=httpd.socket,
-                                               server_side=True,
-                                               certfile=str(self.server_cert),
-                                               ssl_version=ssl.PROTOCOL_TLS)
+                if url_scheme == "https":
+                    httpd.socket = ssl.wrap_socket(
+                        sock=httpd.socket,
+                        server_side=True,
+                        certfile=str(self.server_cert),
+                        ssl_version=ssl.PROTOCOL_TLS
+                    )
+                print(f"[>] Server started on {url_scheme}://{host}:{port}")
+                print("[>] Waiting for connections (press Ctrl+C to abort)...")
                 httpd.serve_forever()
             except KeyboardInterrupt:
                 print("\n[!] Shutting down the server...")
@@ -84,7 +93,7 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="Phantom - HTTPS Reverse Shell Server"
+        description="Phantom - HTTP(S) Reverse Shell Server"
     )
     parser.add_argument(
         "host",
@@ -98,12 +107,19 @@ if __name__ == "__main__":
         metavar="<port>",
         help="Port number to bind the server to."
     )
-    parser.add_argument(
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument(
         "--server-cert",
         type=str,
         metavar="<path>",
         help="Path to a file containing the server certificate in PEM format. "
              "Creates a development certificate for 'localhost' if unset."
+    )
+    mode.add_argument(
+        "--unsecure",
+        action="store_true",
+        help="Run the server in HTTP-only mode. No server certificate is "
+             "required."
     )
 
     _args = parser.parse_args()
@@ -111,5 +127,6 @@ if __name__ == "__main__":
     ShellServer(
         host=_args.host,
         port=_args.port,
-        server_cert=_args.server_cert
+        server_cert=_args.server_cert,
+        unsecure=_args.unsecure
     ).execute()
