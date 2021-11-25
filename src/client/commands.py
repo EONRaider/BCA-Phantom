@@ -16,8 +16,8 @@ class ClientCommands:
         """Dispatch the commands received from the server to their
         respective methods, depending on their format.
 
-        :param client: Instance of Client through which commands will be
-            received.
+        :param client: Instance of ShellClient through which commands
+            will be received.
         """
         self.client = client
 
