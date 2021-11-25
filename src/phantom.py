@@ -5,7 +5,7 @@ __author__ = "EONRaider @ keybase.io/eonraider"
 
 
 class Phantom:
-    def __init__(self, server_url):
+    def __init__(self, server_url: str):
         """Base class for servers and clients of the Phantom Reverse
         Shell.
 
@@ -37,11 +37,13 @@ class Phantom:
 
     @staticmethod
     def validate_port(port) -> int:
+        """Validates a port number as being an integer in the closed
+        range between 0 and 65535."""
         try:
             port = int(port)
             if not 0 < port < 65536:
                 raise SystemExit("Error: Port number values must be within "
-                                 "the range 0 to 65535.")
+                                 "the closed range between 0 and 65535.")
         except TypeError:
             raise SystemExit("Error: Port numbers must be integers.")
         return port
