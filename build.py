@@ -87,7 +87,7 @@ if __name__ == "__main__":
 
     client_parser = subparsers.add_parser("client")
     client_parser.add_argument(
-        "--url",
+        "url",
         type=str,
         help="Full URL of the server (with optional port number) in the format "
              "'SCHEME://DOMAIN|ADDRESS[:PORT]'. "

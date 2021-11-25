@@ -85,7 +85,9 @@ class ShellClient(Phantom):
         while True:
             try:
                 response: str = self.post({"prompt": self._shell_prompt})
-            except (http.client.RemoteDisconnected, KeyboardInterrupt):
+            except (http.client.RemoteDisconnected,
+                    ConnectionResetError,
+                    KeyboardInterrupt):
                 break
             cmd_name, *cmd_args = response.split(" ")
             try:
