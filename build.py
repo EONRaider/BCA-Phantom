@@ -48,20 +48,21 @@ def server(args: argparse.Namespace) -> list[str]:
 def client(args: argparse.Namespace) -> list[str]:
     """Set-up the arguments required by PyInstaller to build the
     client binary."""
-    config = {"host": args.host, "port": args.port}
+    config = {"url": args.url}
     cmd = ["src/client/client.py", "--onefile", "--hidden-import", "config"]
+    os: str = os_name()
 
     if args.ca_cert is None:
-        cmd.extend(["--name", f"http_{os_name()}_client"])
+        cmd.extend(["--name", f"http_{os}_client"])
     else:  # Client bundles CA certificate file in PEM format
         config.update({"ca_cert": Path(args.ca_cert).name})
-        cmd.extend(["--name", f"https_{os_name()}_client",
+        cmd.extend(["--name", f"https_{os}_client",
                     "--add-data", f"{args.ca_cert}{os_sep()}."])
 
     '''A configuration file named 'client.py' is created with hardcoded 
-    server address, port and path to CA certificate file, if any, that 
-    allows seamless connection of the binary client to the server. This 
-    file is bundled in the binary and read on execution.'''
+    server URL and path to CA certificate file, if any, that allows 
+    seamless connection of the binary client to the server. This file 
+    is bundled in the binary and read on execution.'''
     with open(file="src/client/config.py", mode="w") as config_file:
         for key, value in config.items():
             config_file.write(f"{key} = '{value}'\n")
@@ -86,16 +87,11 @@ if __name__ == "__main__":
 
     client_parser = subparsers.add_parser("client")
     client_parser.add_argument(
-        "host",
+        "--url",
         type=str,
-        metavar="<hostname/address>",
-        help="Address or hostname of the server to connect to."
-    )
-    client_parser.add_argument(
-        "port",
-        type=int,
-        metavar="<port>",
-        help="Port number exposed by the server."
+        help="Full URL of the server (with optional port number) in the format "
+             "'SCHEME://DOMAIN|ADDRESS[:PORT]'. "
+             "Ex: http://192.168.0.10:8080 or https://your-domain.com"
     )
     client_parser.add_argument(
         "--ca-cert",
