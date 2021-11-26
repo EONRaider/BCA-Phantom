@@ -1,7 +1,7 @@
 [tool.poetry]
-name = "basic-http-reverse-shell"
-version = "0.1.0"
-description = ""
+name = "phantom"
+version = "2.0.0"
+description = "A cross-platform HTTP(S) Reverse Shell Server and Client in Python 3"
 authors = ["EONRaider <livewire_voodoo@protonmail.com>"]
 
 [tool.poetry.dependencies]

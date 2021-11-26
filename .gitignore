@@ -98,7 +98,6 @@ __pycache__/
 # Distribution / packaging
 build/
 develop-eggs/
-dist/
 downloads/
 eggs/
 .eggs/
@@ -225,4 +224,4 @@ dmypy.json
 cython_debug/
 
 # Project-specific files
-client.cfg
+config.py

