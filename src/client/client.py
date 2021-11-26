@@ -103,7 +103,7 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="Phantom - A cross-platform HTTP(S) Reverse Shell Client"
+        description="Phantom - A multi-platform HTTP(S) Reverse Shell Client"
     )
     parser.add_argument(
         "--url",
