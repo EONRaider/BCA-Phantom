@@ -3,6 +3,8 @@
 
 __author__ = "EONRaider @ keybase.io/eonraider"
 
+from urllib.parse import urlparse
+
 
 class Phantom:
     def __init__(self, server_url: str):
@@ -18,32 +20,20 @@ class Phantom:
     @property
     def server_url(self) -> str:
         """Gets the URL for the server.
-        Sets the server URL and splits it into elements (scheme, host
-        and port number)."""
+        Sets the server URL and splits it into its elements (scheme,
+        hostname and port number)."""
         return self._server_url
 
     @server_url.setter
     def server_url(self, url):
-        self._scheme, self._host = url.split("://")
+        url = urlparse(url)
+        self._scheme = url.scheme
         if self._scheme not in {"http", "https"}:
             raise TypeError(f"Error: Unsupported URL scheme for server "
                             f"connection '{self._scheme}'.")
-        try:
-            self._host, port = self._host.split(":")
-            self._port = self.validate_port(port)
-        except ValueError:  # Raised if _host has no ":"
+        self._host = url.hostname
+        if url.port is None:
             self._port = 443 if self._scheme == "https" else 80
-        self._server_url = url
-
-    @staticmethod
-    def validate_port(port) -> int:
-        """Validates a port number as being an integer in the closed
-        range between 0 and 65535."""
-        try:
-            port = int(port)
-            if not 0 < port < 65536:
-                raise SystemExit("Error: Port number values must be within "
-                                 "the closed range between 0 and 65535.")
-        except TypeError:
-            raise SystemExit("Error: Port numbers must be integers.")
-        return port
+        else:
+            self._port = url.port
+        self._server_url = url.geturl()
