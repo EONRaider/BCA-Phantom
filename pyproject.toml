@@ -2,7 +2,7 @@
 name = "phantom"
 version = "2.0.0"
 description = "A cross-platform HTTP(S) Reverse Shell Server and Client in Python 3"
-authors = ["EONRaider <livewire_voodoo@protonmail.com>"]
+authors = ["EONRaider <eonraider@protonmail.com>"]
 
 [tool.poetry.dependencies]
 python = ">=3.9,<3.11"
