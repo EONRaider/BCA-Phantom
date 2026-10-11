@@ -1,6 +1,6 @@
 altgraph==0.17.2
 cffi==1.15.0
-cryptography==35.0.0
+cryptography==39.0.1
 idna==3.3
 pycparser==2.21
 pyinstaller==4.7
